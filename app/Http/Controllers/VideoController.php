@@ -19,6 +19,7 @@ class VideoController extends Controller
         $tmdb = new \App\Services\TmdbService();
         $filmPosters = [];
         $seriesPosters = [];
+        $seriesSeasonsCount = [];
         foreach ($directories as $dir) {
             $subdirs = $disk->directories($dir);
             $folderName = basename($dir);
@@ -27,6 +28,8 @@ class VideoController extends Controller
                 // پوستر سریال از TMDb
                 $tmdbInfo = $tmdb->search($folderName, 'tv');
                 $seriesPosters[$dir] = $tmdbInfo['poster_path'] ?? null;
+                // تعداد فصل‌ها
+                $seriesSeasonsCount[$dir] = count($subdirs);
             } else {
                 $seriesFiles = $disk->files($dir);
                 $hasVideo = false;
@@ -46,7 +49,7 @@ class VideoController extends Controller
             }
         }
 
-        return view('index', compact('films', 'series', 'filmPosters', 'seriesPosters'));
+        return view('index', compact('films', 'series', 'filmPosters', 'seriesPosters', 'seriesSeasonsCount'));
     }
 
     public function folder($path = null)

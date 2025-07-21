@@ -103,7 +103,9 @@
                                             <i class="fas fa-layer-group fa-2x"></i>
                                         </div>
                                     @endif
-                                    <span class="type-badge series"><i class="fas fa-layer-group"></i>سریال</span>
+                                    @if(isset($seriesSeasonsCount[$dir]))
+                                        <span class="badge bg-danger position-absolute top-0 end-0 m-2" style="z-index:21; font-size:0.95rem; border-radius:1.2rem;">{{ $seriesSeasonsCount[$dir] }} فصل</span>
+                                    @endif
                                     <div class="card-overlay">
                                         <h5 class="folder-name">{{ $folderName }}</h5>
                                     </div>
