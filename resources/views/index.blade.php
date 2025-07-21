@@ -7,10 +7,27 @@
     .video-grid {
         padding: 0 2rem;
     }
+    .cover-image, .no-cover {
+        width: 100%;
+        aspect-ratio: 27/44;
+        min-height: 150px;
+        max-height: 260px;
+        object-fit: cover;
+        display: block;
+        border-radius: 8px;
+        background: linear-gradient(45deg, var(--netflix-red) 0%, #ff6b6b 100%);
+        transition: all 0.3s ease;
+    }
+    .no-cover {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 3rem;
+    }
     @media (max-width: 768px) {
-        .hero-title { font-size: 2.5rem; }
         .video-grid { padding: 0 1rem; }
-        .search-box { width: 100%; max-width: 300px; }
+        .cover-image, .no-cover { min-height: 100px; max-height: 180px; }
     }
 </style>
 @endpush
@@ -36,11 +53,14 @@
                         @php
                             $folderName = basename($dir);
                             $coverPath = "/storage/videos/$folderName/_cover.jpg";
+                            $tmdbPoster = $filmPosters[$dir] ?? null;
                         @endphp
-                        <div class="col-md-4 col-lg-3 col-sm-6">
+                        <div class="col-md-3 col-lg-2 col-sm-4">
                             <div class="video-card position-relative">
                                 <a href="/folder/{{ $folderName }}" class="text-decoration-none">
-                                    @if(file_exists(public_path("storage/videos/$folderName/_cover.jpg")))
+                                    @if($tmdbPoster)
+                                        <img src="https://image.tmdb.org/t/p/w500{{ $tmdbPoster }}" alt="{{ $folderName }}" class="cover-image">
+                                    @elseif(file_exists(public_path("storage/videos/$folderName/_cover.jpg")))
                                         <img src="{{ $coverPath }}" alt="{{ $folderName }}" class="cover-image">
                                     @else
                                         <div class="no-cover d-flex align-items-center justify-content-center">
@@ -69,11 +89,14 @@
                         @php
                             $folderName = basename($dir);
                             $coverPath = "/storage/videos/$folderName/_cover.jpg";
+                            $tmdbPoster = $seriesPosters[$dir] ?? null;
                         @endphp
-                        <div class="col-md-4 col-lg-3 col-sm-6">
+                        <div class="col-md-3 col-lg-2 col-sm-4">
                             <div class="video-card position-relative">
                                 <a href="/folder/{{ $folderName }}" class="text-decoration-none">
-                                    @if(file_exists(public_path("storage/videos/$folderName/_cover.jpg")))
+                                    @if($tmdbPoster)
+                                        <img src="https://image.tmdb.org/t/p/w500{{ $tmdbPoster }}" alt="{{ $folderName }}" class="cover-image">
+                                    @elseif(file_exists(public_path("storage/videos/$folderName/_cover.jpg")))
                                         <img src="{{ $coverPath }}" alt="{{ $folderName }}" class="cover-image">
                                     @else
                                         <div class="no-cover d-flex align-items-center justify-content-center">
