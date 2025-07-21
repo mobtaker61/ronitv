@@ -1,0 +1,110 @@
+/* فونت‌های فارسی محلی */
+
+@font-face {
+    font-family: 'Vazir';
+    src: url('/fonts/Vazir.eot');
+    src: url('/fonts/Vazir.eot?#iefix') format('embedded-opentype'),
+         url('/fonts/Vazir.woff2') format('woff2'),
+         url('/fonts/Vazir.woff') format('woff'),
+         url('/fonts/Vazir.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Vazir';
+    src: url('/fonts/Vazir-Bold.eot');
+    src: url('/fonts/Vazir-Bold.eot?#iefix') format('embedded-opentype'),
+         url('/fonts/Vazir-Bold.woff2') format('woff2'),
+         url('/fonts/Vazir-Bold.woff') format('woff'),
+         url('/fonts/Vazir-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Vazir';
+    src: url('/fonts/Vazir-Light.eot');
+    src: url('/fonts/Vazir-Light.eot?#iefix') format('embedded-opentype'),
+         url('/fonts/Vazir-Light.woff2') format('woff2'),
+         url('/fonts/Vazir-Light.woff') format('woff'),
+         url('/fonts/Vazir-Light.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Vazir';
+    src: url('/fonts/Vazir-Medium.eot');
+    src: url('/fonts/Vazir-Medium.eot?#iefix') format('embedded-opentype'),
+         url('/fonts/Vazir-Medium.woff2') format('woff2'),
+         url('/fonts/Vazir-Medium.woff') format('woff'),
+         url('/fonts/Vazir-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+/* فونت IRANSans */
+@font-face {
+    font-family: 'IRANSans';
+    src: url('/fonts/IRANSansWeb.eot');
+    src: url('/fonts/IRANSansWeb.eot?#iefix') format('embedded-opentype'),
+         url('/fonts/IRANSansWeb.woff2') format('woff2'),
+         url('/fonts/IRANSansWeb.woff') format('woff'),
+         url('/fonts/IRANSansWeb.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'IRANSans';
+    src: url('/fonts/IRANSansWeb_Bold.eot');
+    src: url('/fonts/IRANSansWeb_Bold.eot?#iefix') format('embedded-opentype'),
+         url('/fonts/IRANSansWeb_Bold.woff2') format('woff2'),
+         url('/fonts/IRANSansWeb_Bold.woff') format('woff'),
+         url('/fonts/IRANSansWeb_Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+}
+
+/* فونت Yekan */
+@font-face {
+    font-family: 'Yekan';
+    src: url('/fonts/Yekan.eot');
+    src: url('/fonts/Yekan.eot?#iefix') format('embedded-opentype'),
+         url('/fonts/Yekan.woff') format('woff'),
+         url('/fonts/Yekan.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* تنظیم فونت پیش‌فرض */
+:root {
+    --persian-font-primary: 'Vazirmatn', 'Vazir', 'IRANSans', 'Tahoma', sans-serif;
+    --persian-font-secondary: 'IRANSans', 'Vazir', 'Tahoma', sans-serif;
+    --persian-font-display: 'Yekan', 'Vazir', 'Tahoma', sans-serif;
+}
+
+body {
+    font-family: var(--persian-font-primary);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--persian-font-display);
+}
+
+.navbar-brand {
+    font-family: var(--persian-font-display);
+}
+
+/* بهبود نمایش اعداد فارسی */
+.persian-numbers {
+    font-feature-settings: "ss01", "ss02", "ss03", "ss04", "ss05", "ss06";
+    font-variant-numeric: tabular-nums;
+}
+
+/* بهبود نمایش حروف فارسی */
+.persian-text {
+    font-feature-settings: "liga", "kern";
+    text-rendering: optimizeLegibility;
+}
