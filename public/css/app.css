@@ -103,6 +103,9 @@ body {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     margin-bottom: 2rem;
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 .video-card:hover {
     transform: scale(1.05) translateY(-10px);
@@ -112,12 +115,15 @@ body {
 .video-card:hover .card-overlay {
     opacity: 1;
 }
-.cover-image, .no-cover {
+.cover-image,
+.no-cover {
     width: 100%;
     aspect-ratio: 27/40;
-    height: auto;
     min-height: 200px;
     object-fit: cover;
+    display: block;
+    border-radius: 8px;
+    background: linear-gradient(45deg, var(--netflix-red) 0%, #ff6b6b 100%);
     transition: all 0.3s ease;
 }
 .video-card:hover .cover-image {
