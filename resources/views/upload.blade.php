@@ -141,7 +141,7 @@
                 <!-- فرم آپلود ویدیو -->
                 <div class="upload-card">
                     <h2 class="upload-title">
-                        <i class="fas fa-upload me-2"></i>آپلود ویدیو جدید
+                        <i class="fas fa-upload me-2"></i>آپلود فایل ویدیو
                     </h2>
 
                     <form action="{{ route('upload.video') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
@@ -185,6 +185,45 @@
                         <div class="text-center">
                             <button type="submit" class="upload-btn">
                                 <i class="fas fa-cloud-upload-alt me-2"></i>آپلود ویدیو
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- فرم دانلود از لینک اینترنتی -->
+                <div class="upload-card">
+                    <h3 class="upload-title">
+                        <i class="fas fa-download me-2"></i>دانلود از لینک اینترنتی
+                    </h3>
+
+                    <form action="{{ route('download.url') }}" method="POST">
+                        @csrf
+
+                        <div class="mb-3">
+                            <label for="download_folder" class="form-label">انتخاب پوشه:</label>
+                            <select name="folder" id="download_folder" class="form-select" required>
+                                <option value="">پوشه را انتخاب کنید...</option>
+                                @foreach($directories as $dir)
+                                    <option value="{{ $dir }}">{{ $dir }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="url" class="form-label">لینک فایل:</label>
+                            <input type="url" name="url" id="url" class="form-control" placeholder="https://example.com/video.mp4" required>
+                            <small class="text-muted">لینک مستقیم فایل ویدیو را وارد کنید</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="filename" class="form-label">نام فایل (اختیاری):</label>
+                            <input type="text" name="filename" id="filename" class="form-control" placeholder="نام دلخواه فایل">
+                            <small class="text-muted">اگر خالی باشد، نام فایل از لینک استخراج می‌شود</small>
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="upload-btn">
+                                <i class="fas fa-cloud-download-alt me-2"></i>دانلود فایل
                             </button>
                         </div>
                     </form>

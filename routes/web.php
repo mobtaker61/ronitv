@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\VideoController;
 use App\Http\Controllers\UploadController;
+use App\Http\Controllers\DownloadController;
+use App\Http\Controllers\WelcomeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -13,6 +15,9 @@ Route::get('/folder/{path?}', [VideoController::class, 'folder'])->where('path',
 Route::get('/upload', [UploadController::class, 'showUploadForm'])->name('upload.form');
 Route::post('/upload', [UploadController::class, 'upload'])->name('upload.video');
 Route::post('/create-folder', [UploadController::class, 'createFolder'])->name('create.folder');
+
+// دانلود فایل از لینک اینترنتی
+Route::post('/download-url', [DownloadController::class, 'downloadFromUrl'])->name('download.url');
 
 Route::get('/ajax/season-videos/{series}/{season}', function($series, $season) {
     $disk = Storage::disk('videos');
