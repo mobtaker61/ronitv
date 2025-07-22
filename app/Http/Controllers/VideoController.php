@@ -49,7 +49,7 @@ class VideoController extends Controller
             }
         }
 
-        return view('index', compact('films', 'series', 'filmPosters', 'seriesPosters', 'seriesSeasonsCount', 'directories'));
+        return view('index', compact('films', 'series', 'filmPosters', 'seriesPosters', 'seriesSeasonsCount'));
     }
 
     public function folder($path = null)

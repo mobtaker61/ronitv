@@ -11,9 +11,38 @@ class UploadController extends Controller
     public function showUploadForm()
     {
         $disk = Storage::disk('videos');
-        $directories = $disk->directories();
+        $allDirectories = $this->getAllDirectories($disk);
 
-        return view('upload', compact('directories'));
+        return view('upload', compact('allDirectories'));
+    }
+
+            private function getAllDirectories($disk, $basePath = '')
+    {
+        $directories = [];
+        $currentDirectories = $disk->directories($basePath);
+
+        foreach ($currentDirectories as $dir) {
+            // حذف مسیر پایه از نام پوشه
+            $dirName = basename($dir);
+            $fullPath = $basePath ? $basePath . '/' . $dirName : $dirName;
+
+            // نمایش نام سلسله مراتبی
+            $pathParts = explode('/', $fullPath);
+            $displayName = implode(' / ', $pathParts);
+
+            $directories[] = [
+                'path' => $fullPath,
+                'name' => $displayName,
+                'level' => substr_count($fullPath, '/'),
+                'indent' => str_repeat('  ', substr_count($fullPath, '/'))
+            ];
+
+            // بررسی زیرپوشه‌ها
+            $subDirectories = $this->getAllDirectories($disk, $fullPath);
+            $directories = array_merge($directories, $subDirectories);
+        }
+
+        return $directories;
     }
 
     public function upload(Request $request)

@@ -44,13 +44,6 @@
     </div>
 
     <div class="container">
-        <!-- دکمه آپلود -->
-        <div class="text-end mb-4">
-            <a href="{{ route('upload.form') }}" class="btn btn-primary">
-                <i class="fas fa-upload me-2"></i>آپلود ویدیو جدید
-            </a>
-        </div>
-
         <!-- فیلم‌ها -->
         @if(count($films) > 0)
             <h2 class="section-title mb-4"><i class="fas fa-clapperboard me-2"></i>فیلم‌ها</h2>

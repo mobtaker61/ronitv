@@ -118,6 +118,15 @@
         display: none;
         margin-top: 1rem;
     }
+
+    .folder-select {
+        font-family: 'Courier New', monospace;
+    }
+
+    .folder-select option {
+        font-family: 'Courier New', monospace;
+        white-space: pre;
+    }
 </style>
 @endpush
 
@@ -149,10 +158,12 @@
 
                         <div class="mb-3">
                             <label for="folder" class="form-label">انتخاب پوشه:</label>
-                            <select name="folder" id="folder" class="form-select" required>
+                            <select name="folder" id="folder" class="form-select folder-select" required>
                                 <option value="">پوشه را انتخاب کنید...</option>
-                                @foreach($directories as $dir)
-                                    <option value="{{ $dir }}">{{ $dir }}</option>
+                                @foreach($allDirectories as $dir)
+                                    <option value="{{ $dir['path'] }}">
+                                        {{ $dir['indent'] }}{{ $dir['name'] }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -201,10 +212,12 @@
 
                         <div class="mb-3">
                             <label for="download_folder" class="form-label">انتخاب پوشه:</label>
-                            <select name="folder" id="download_folder" class="form-select" required>
+                            <select name="folder" id="download_folder" class="form-select folder-select" required>
                                 <option value="">پوشه را انتخاب کنید...</option>
-                                @foreach($directories as $dir)
-                                    <option value="{{ $dir }}">{{ $dir }}</option>
+                                @foreach($allDirectories as $dir)
+                                    <option value="{{ $dir['path'] }}">
+                                        {{ $dir['indent'] }}{{ $dir['name'] }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -245,10 +258,12 @@
 
                         <div class="mb-3">
                             <label for="parent_folder" class="form-label">پوشه والد (اختیاری):</label>
-                            <select name="parent_folder" id="parent_folder" class="form-select">
+                            <select name="parent_folder" id="parent_folder" class="form-select folder-select">
                                 <option value="">پوشه اصلی</option>
-                                @foreach($directories as $dir)
-                                    <option value="{{ $dir }}">{{ $dir }}</option>
+                                @foreach($allDirectories as $dir)
+                                    <option value="{{ $dir['path'] }}">
+                                        {{ $dir['indent'] }}{{ $dir['name'] }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
