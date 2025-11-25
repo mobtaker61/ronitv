@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'bunny' => [
+        'stream_library_id' => env('BUNNY_STREAM_LIBRARY_ID'),
+        'stream_access_key' => env('BUNNY_STREAM_ACCESS_KEY'),
+    ],
+
 ];

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\VideoController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DownloadController;
+use App\Http\Controllers\BunnyVodController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -17,6 +18,10 @@ Route::post('/create-folder', [UploadController::class, 'createFolder'])->name('
 
 // دانلود فایل از لینک اینترنتی
 Route::post('/download-url', [DownloadController::class, 'downloadFromUrl'])->name('download.url');
+
+// Bunny VOD
+Route::get('/vod/collection/{collectionId}', [BunnyVodController::class, 'showCollection'])->name('vod.collection.show');
+Route::get('/shahrokh', [BunnyVodController::class, 'showShahrokh'])->name('vod.shahrokh');
 
 Route::get('/ajax/season-videos/{series}/{season}', function($series, $season) {
     $disk = Storage::disk('videos');
