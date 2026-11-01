@@ -135,7 +135,7 @@
                             <span class="badge bg-secondary">{{ $tmdbRuntime }} دقیقه</span>
                         @endif
                         @foreach($tmdbGenres as $genre)
-                            <span class="badge border text-body-secondary">{{ $genre }}</span>
+                            <span class="badge border">{{ $genre }}</span>
                         @endforeach
                     </div>
                     <p class="tmdb-overview mb-1" title="{{ $tmdbInfo['overview'] ?? '' }}">{{ $tmdbInfo['overview'] ?: 'خلاصه‌ای موجود نیست.' }}</p>

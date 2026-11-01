@@ -82,3 +82,9 @@
     background: rgba(0, 123, 255, 0.12);
     border-color: #007bff;
 }
+
+/* Genre pills: Bootstrap's text-body-secondary is near-invisible on the dark theme */
+.tmdb-header .badge.border {
+    color: inherit;
+    border-color: rgba(128, 128, 128, 0.5) !important;
+}
