@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AdminAuthController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BunnyVodController;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\SubtitleController;
@@ -13,8 +15,19 @@ Route::get('/ajax/season-videos/{series}/{season}', [VideoController::class, 'se
 Route::get('/download/{path}', [VideoController::class, 'download'])->where('path', '.*')->middleware('throttle:10,1')->name('video.download');
 Route::get('/subtitle/{path}', [SubtitleController::class, 'show'])->where('path', '.*')->name('subtitle.show');
 
-// مدیریت (آپلود، ساخت پوشه، دانلود از لینک) — فقط ادمین
-Route::middleware(['admin', 'throttle:60,1'])->group(function () {
+// ورود ادمین (session)
+Route::get('/admin/login', [AdminAuthController::class, 'showLogin'])->name('admin.login');
+Route::post('/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:20,1')->name('admin.login.submit');
+Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
+
+// مدیریت (داشبورد، کتابخانه، آپلود، ساخت پوشه، دانلود از لینک) — فقط ادمین
+Route::middleware(['admin', 'throttle:120,1'])->group(function () {
+    Route::get('/admin', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    Route::get('/admin/library/{path?}', [AdminController::class, 'library'])->where('path', '.*')->name('admin.library');
+    Route::post('/admin/rename', [AdminController::class, 'rename'])->name('admin.rename');
+    Route::post('/admin/move', [AdminController::class, 'move'])->name('admin.move');
+    Route::post('/admin/delete', [AdminController::class, 'delete'])->name('admin.delete');
+
     Route::get('/upload', [UploadController::class, 'showUploadForm'])->name('upload.form');
     Route::post('/upload', [UploadController::class, 'upload'])->name('upload.video');
     Route::post('/create-folder', [UploadController::class, 'createFolder'])->name('create.folder');

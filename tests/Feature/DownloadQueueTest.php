@@ -18,23 +18,18 @@ beforeEach(function () {
     Cache::flush();
 });
 
-function admin(): array
-{
-    return ['Authorization' => 'Basic '.base64_encode('admin:secret')];
-}
-
 it('queues a download instead of fetching inline', function () {
     Queue::fake();
     Http::fake();
 
-    $this->withHeaders(admin())
+    $this->withSession(['admin_auth' => true])
         ->post('/download-url', ['url' => 'http://93.184.216.34/movie.mp4', 'folder' => 'Movie', 'filename' => 'm.mp4'])
         ->assertSessionHas('success');
 
     Queue::assertPushed(DownloadRemoteVideo::class, fn ($job) => $job->relativePath === 'Movie/m.mp4');
     Http::assertNothingSent();
 
-    $this->withHeaders(admin())->getJson('/download-status')
+    $this->withSession(['admin_auth' => true])->getJson('/download-status')
         ->assertOk()
         ->assertJsonPath('0.status', 'queued')
         ->assertJsonPath('0.path', 'Movie/m.mp4');
@@ -44,7 +39,7 @@ it('does not queue invalid, non-video or duplicate downloads', function (array $
     Queue::fake();
     Storage::disk('videos')->put('Movie/exists.mp4', 'x');
 
-    $this->withHeaders(admin())
+    $this->withSession(['admin_auth' => true])
         ->post('/download-url', $input + ['folder' => 'Movie'])
         ->assertSessionHas('error');
 

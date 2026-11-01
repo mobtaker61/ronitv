@@ -8,11 +8,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
-function adminHeaders(string $user = 'admin', string $password = 'secret'): array
-{
-    return ['Authorization' => 'Basic '.base64_encode("$user:$password")];
-}
-
 beforeEach(function () {
     config([
         'admin.user' => 'admin',
@@ -22,8 +17,8 @@ beforeEach(function () {
     Cache::flush();
 });
 
-it('rejects management routes without credentials', function (string $method, string $uri) {
-    $this->call($method, $uri)->assertStatus(401);
+it('sends guests to the login page for management routes', function (string $method, string $uri) {
+    $this->call($method, $uri)->assertRedirect(route('admin.login'));
 })->with([
     ['GET', '/upload'],
     ['POST', '/upload'],
@@ -31,25 +26,20 @@ it('rejects management routes without credentials', function (string $method, st
     ['POST', '/download-url'],
 ]);
 
-it('rejects wrong credentials', function () {
-    $this->get('/upload', adminHeaders('admin', 'nope'))->assertStatus(401);
-    $this->get('/upload', adminHeaders('root', 'secret'))->assertStatus(401);
-});
-
 it('fails closed when the admin account is not configured', function () {
     config(['admin.user' => null, 'admin.password_hash' => null]);
 
-    $this->get('/upload', adminHeaders())->assertStatus(503);
+    $this->withSession(['admin_auth' => true])->get('/upload')->assertStatus(503);
 });
 
 it('shows the upload form to the admin', function () {
     Storage::disk('videos')->makeDirectory('Movie');
 
-    $this->get('/upload', adminHeaders())->assertOk()->assertSee('Movie');
+    $this->withSession(['admin_auth' => true])->get('/upload')->assertOk()->assertSee('Movie');
 });
 
 it('uploads a video for the admin', function () {
-    $this->withHeaders(adminHeaders())
+    $this->withSession(['admin_auth' => true])
         ->post('/upload', [
             'folder' => 'Movie',
             'video' => UploadedFile::fake()->create('film.mp4', 100, 'video/mp4'),
@@ -59,13 +49,13 @@ it('uploads a video for the admin', function () {
 });
 
 it('rejects non-video uploads and traversal in the folder', function () {
-    $this->withHeaders(adminHeaders())
+    $this->withSession(['admin_auth' => true])
         ->post('/upload', [
             'folder' => 'Movie',
             'video' => UploadedFile::fake()->create('shell.php', 1),
         ])->assertSessionHasErrors('video');
 
-    $this->withHeaders(adminHeaders())
+    $this->withSession(['admin_auth' => true])
         ->post('/upload', [
             'folder' => '../../public',
             'video' => UploadedFile::fake()->create('film.mp4', 100, 'video/mp4'),
@@ -75,11 +65,11 @@ it('rejects non-video uploads and traversal in the folder', function () {
 });
 
 it('refuses to create folders outside the videos root', function () {
-    $this->withHeaders(adminHeaders())
+    $this->withSession(['admin_auth' => true])
         ->post('/create-folder', ['folder_name' => '..', 'parent_folder' => ''])
         ->assertSessionHas('error');
 
-    $this->withHeaders(adminHeaders())
+    $this->withSession(['admin_auth' => true])
         ->post('/create-folder', ['folder_name' => 'ok', 'parent_folder' => 'a/../..'])
         ->assertSessionHas('error');
 });
@@ -87,7 +77,7 @@ it('refuses to create folders outside the videos root', function () {
 it('blocks SSRF attempts on the download endpoint', function (string $url) {
     Http::fake();
 
-    $this->withHeaders(adminHeaders())
+    $this->withSession(['admin_auth' => true])
         ->post('/download-url', ['url' => $url, 'folder' => 'Movie', 'filename' => 'x.mp4'])
         ->assertSessionHas('error');
 

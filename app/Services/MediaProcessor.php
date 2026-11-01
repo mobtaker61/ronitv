@@ -85,6 +85,15 @@ class MediaProcessor
         return substr(sha1(($dir !== '' ? $dir.'/' : '').$base), 0, 16);
     }
 
+    /**
+     * The segment folder a published playlist points at, read from the playlist itself so the video
+     * can be renamed or moved without its HLS folder needing to follow.
+     */
+    public static function hlsKeyFromPlaylist(string $playlist): ?string
+    {
+        return preg_match('#/storage/hls/([0-9a-f]{16})/#', $playlist, $m) ? $m[1] : null;
+    }
+
     private function assertFreeSpace(string $source, int $size): void
     {
         $free = @disk_free_space(dirname($source));

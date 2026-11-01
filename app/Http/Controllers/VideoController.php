@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Middleware\AdminBasicAuth;
+use App\Http\Middleware\AdminAuth;
 use App\Services\MediaProcessor;
 use App\Services\TmdbService;
 use App\Services\VideoLibrary;
@@ -82,7 +82,7 @@ class VideoController extends Controller
             $tmdbInfo = isset($found['id']) ? $this->tmdb->details($found['id'], $tmdbType) : $found;
         }
 
-        $isAdmin = AdminBasicAuth::passes($request);
+        $isAdmin = AdminAuth::check($request);
         $languages = $this->library->languages();
 
         return view('folder', compact('subdirs', 'videoFiles', 'currentPath', 'tmdbInfo', 'tmdbType', 'seasonVideos', 'isAdmin', 'languages'));
@@ -117,9 +117,11 @@ class VideoController extends Controller
         $videos = Storage::disk('videos');
         abort_unless(strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'm3u8' && $videos->exists($path), 404);
 
-        $dir = dirname($path) === '.' ? '' : dirname($path);
         $base = pathinfo($path, PATHINFO_FILENAME);
-        $master = Storage::disk('hls')->path(MediaProcessor::hlsKey($dir, $base).'/master.m3u8');
+        $key = MediaProcessor::hlsKeyFromPlaylist((string) $videos->get($path));
+        abort_if($key === null, 404);
+
+        $master = Storage::disk('hls')->path($key.'/master.m3u8');
         abort_unless(is_file($master), 404);
 
         $filename = $base.'.mp4';

@@ -193,27 +193,26 @@ it('lets only the admin search and fetch online subtitles', function () {
 it('serves candidates and stores a chosen subtitle through the admin endpoints', function () {
     Storage::disk('videos')->put('Film/Film.2013.mkv', 'x');
     fakeServices([subsourceItem(11, 'WEB-DL'), subsourceItem(12, 'BluRay')], [12 => zipOf(['a.srt' => SRT_FA])], [['movieId' => 777, 'season' => null]]);
-    $auth = ['Authorization' => 'Basic '.base64_encode('admin:secret')];
 
-    $this->withHeaders($auth)->getJson('/subtitles/online?video=Film/Film.2013.mkv')
+    $this->withSession(['admin_auth' => true])->getJson('/subtitles/online?video=Film/Film.2013.mkv')
         ->assertOk()
         ->assertJsonCount(2, 'candidates')
         ->assertJsonPath('local', false);
 
-    $this->withHeaders($auth)->postJson('/subtitles/online', ['video' => 'Film/Film.2013.mkv', 'subtitle_id' => 12])
+    $this->withSession(['admin_auth' => true])->postJson('/subtitles/online', ['video' => 'Film/Film.2013.mkv', 'subtitle_id' => 12])
         ->assertOk()->assertJsonPath('status', 'stored')->assertJsonPath('subtitle_id', 12);
 
     Storage::disk('videos')->assertExists('Film/Film.2013.fa.vtt');
 
-    $this->withHeaders($auth)->getJson('/subtitles/online?video=Film/Film.2013.mkv')->assertJsonPath('local', true);
-    $this->withHeaders($auth)->getJson('/subtitles/online?video=../../etc/passwd')->assertNotFound();
+    $this->withSession(['admin_auth' => true])->getJson('/subtitles/online?video=Film/Film.2013.mkv')->assertJsonPath('local', true);
+    $this->withSession(['admin_auth' => true])->getJson('/subtitles/online?video=../../etc/passwd')->assertNotFound();
 });
 
 it('reports a missing API key instead of failing', function () {
     config(['services.subsource.key' => null]);
     Storage::disk('videos')->put('Film/Film.mkv', 'x');
 
-    $this->withHeaders(['Authorization' => 'Basic '.base64_encode('admin:secret')])
+    $this->withSession(['admin_auth' => true])
         ->getJson('/subtitles/online?video=Film/Film.mkv')->assertStatus(503);
 });
 

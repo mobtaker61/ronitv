@@ -642,3 +642,18 @@ body {
         padding-top: 60px;
     }
 }
+
+/* Admin area */
+.admin-card {
+    background: var(--netflix-dark);
+    border: 1px solid rgba(128,128,128,0.25);
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+[data-theme="light"] .admin-card { background: #fff; }
+.admin-nav .nav-link { color: inherit; border-radius: 20px; }
+.admin-nav .nav-link.active { background: var(--netflix-red); color: #fff; }
+.admin-table { --bs-table-bg: transparent; --bs-table-color: inherit; --bs-table-hover-color: inherit; }
+.admin-table thead th { font-weight: 600; font-size: .85rem; opacity: .75; }
+.admin-card, .modal-content { --bs-secondary-color: rgba(255,255,255,.65); --bs-body-color: inherit; }
+[data-theme="light"] .admin-card, [data-theme="light"] .modal-content { --bs-secondary-color: #6c757d; }

@@ -18,11 +18,6 @@ beforeEach(function () {
     Cache::flush();
 });
 
-function adminAuth(): array
-{
-    return ['Authorization' => 'Basic '.base64_encode('admin:secret')];
-}
-
 it('converts srt to webvtt', function () {
     $vtt = SubtitleConverter::toVtt(SRT, 'srt');
 
@@ -82,8 +77,8 @@ it('serves srt as vtt and refuses anything else', function () {
 });
 
 it('requires admin to add or remove subtitles', function () {
-    $this->post('/subtitles')->assertUnauthorized();
-    $this->delete('/subtitles')->assertUnauthorized();
+    $this->post('/subtitles')->assertRedirect(route('admin.login'));
+    $this->delete('/subtitles')->assertRedirect(route('admin.login'));
 });
 
 it('lets the admin add a subtitle, stored as vtt next to the video', function () {
@@ -91,7 +86,7 @@ it('lets the admin add a subtitle, stored as vtt next to the video', function ()
     $disk->put('Show/e1.mkv', 'x');
     $disk->put('Show/e1.fa.srt', 'old');
 
-    $this->withHeaders(adminAuth())->post('/subtitles', [
+    $this->withSession(['admin_auth' => true])->post('/subtitles', [
         'video' => 'Show/e1.mkv',
         'lang' => 'fa',
         'subtitle' => UploadedFile::fake()->createWithContent('anything.srt', SRT),
@@ -105,7 +100,7 @@ it('lets the admin add a subtitle, stored as vtt next to the video', function ()
 it('rejects bad subtitle uploads', function (array $input, string $expect) {
     Storage::disk('videos')->put('Show/e1.mkv', 'x');
 
-    $response = $this->withHeaders(adminAuth())->post('/subtitles', $input + [
+    $response = $this->withSession(['admin_auth' => true])->post('/subtitles', $input + [
         'video' => 'Show/e1.mkv',
         'lang' => 'en',
         'subtitle' => UploadedFile::fake()->createWithContent('a.srt', SRT),
@@ -127,10 +122,10 @@ it('lets the admin delete only subtitle files', function () {
     $disk->put('Show/e1.mkv', 'x');
     $disk->put('Show/e1.fa.vtt', 'WEBVTT');
 
-    $this->withHeaders(adminAuth())->delete('/subtitles', ['path' => 'Show/e1.mkv'])->assertSessionHas('error');
+    $this->withSession(['admin_auth' => true])->delete('/subtitles', ['path' => 'Show/e1.mkv'])->assertSessionHas('error');
     $disk->assertExists('Show/e1.mkv');
 
-    $this->withHeaders(adminAuth())->delete('/subtitles', ['path' => 'Show/e1.fa.vtt'])->assertSessionHas('success');
+    $this->withSession(['admin_auth' => true])->delete('/subtitles', ['path' => 'Show/e1.fa.vtt'])->assertSessionHas('success');
     $disk->assertMissing('Show/e1.fa.vtt');
 });
 
@@ -144,7 +139,7 @@ it('embeds playable data in the folder page, safely, and flags the admin', funct
     $guest->assertOk()->assertSee('id="watchData"', false)->assertDontSee('subtitleModal', false);
     expect($guest->getContent())->not->toContain("a'b&c.mkv");   // quotes and ampersands are \u-escaped inside the JSON block
 
-    $this->withHeaders(adminAuth())->get('/folder/Show')->assertOk()->assertSee('id="subtitleModal"', false);
+    $this->withSession(['admin_auth' => true])->get('/folder/Show')->assertOk()->assertSee('id="subtitleModal"', false);
 
     preg_match('#<script type="application/json" id="watchData">(.*?)</script>#s', $guest->getContent(), $m);
     $data = json_decode($m[1], true);

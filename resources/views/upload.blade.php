@@ -5,7 +5,7 @@
 @push('styles')
 <style>
     .upload-container {
-        padding-top: 100px;
+        padding-top: 20px;
         min-height: 100vh;
     }
 
@@ -132,6 +132,7 @@
 
 @section('content')
     <div class="container upload-container">
+        @include('admin._nav')
         <div class="row justify-content-center">
             <div class="col-md-8">
                 <!-- پیام‌های موفقیت و خطا -->

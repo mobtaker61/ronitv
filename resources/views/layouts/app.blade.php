@@ -46,19 +46,28 @@
                             <i class="fas fa-search"></i>
                         </button>
                     </div>
-                    <!-- User Menu -->
-                    <div class="dropdown d-none">
-                        <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user me-1"></i>کاربر
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/upload"><i class="fas fa-upload me-2"></i>آپلود ویدیو</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>تنظیمات</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-info-circle me-2"></i>درباره</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>خروج</a></li>
-                        </ul>
-                    </div>
+                    <!-- Admin menu (shown after login) / login link -->
+                    @if(session(\App\Http\Middleware\AdminAuth::SESSION_KEY) === true)
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-shield me-1"></i>مدیر
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}"><i class="fas fa-gauge me-2"></i>داشبورد</a></li>
+                                <li><a class="dropdown-item" href="{{ route('admin.library') }}"><i class="fas fa-folder-tree me-2"></i>مدیریت کتابخانه</a></li>
+                                <li><a class="dropdown-item" href="{{ route('upload.form') }}"><i class="fas fa-upload me-2"></i>آپلود و دانلود</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="POST" action="{{ route('admin.logout') }}">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item"><i class="fas fa-right-from-bracket me-2"></i>خروج</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    @else
+                        <a class="btn btn-sm text-secondary" href="{{ route('admin.login') }}" title="ورود مدیر" aria-label="ورود مدیر"><i class="fas fa-lock"></i></a>
+                    @endif
                 </div>
             </div>
         </nav>
