@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Middleware\AdminAuth;
 use App\Services\MediaProcessor;
-use App\Services\TmdbService;
+use App\Services\TitleCatalog;
 use App\Services\VideoLibrary;
 use App\Support\SafePath;
 use Illuminate\Http\Request;
@@ -19,7 +19,7 @@ class VideoController extends Controller
     public const VIDEO_EXTENSIONS = VideoLibrary::UPLOAD_EXTENSIONS;
 
     public function __construct(
-        protected TmdbService $tmdb,
+        protected TitleCatalog $titles,
         protected VideoLibrary $library,
     ) {}
 
@@ -33,17 +33,33 @@ class VideoController extends Controller
         $seriesPosters = [];
         $seriesSeasonsCount = [];
 
-        foreach ($disk->directories() as $dir) {
+        $directories = $disk->directories();
+        $known = $this->titles->forFolders(array_map('basename', $directories));
+        $lookups = 6;
+
+        foreach ($directories as $dir) {
             $subdirs = $disk->directories($dir);
             $folderName = basename($dir);
+            $isSeries = count($subdirs) > 0;
 
-            if (count($subdirs) > 0) {
+            if (! $isSeries && ! $this->library->hasVideo($disk, $dir)) {
+                continue;
+            }
+
+            // Matched once and stored. Only folders never looked up reach TMDb, a few per page view so a big
+            // fresh library fills in over the next visits instead of stalling this one.
+            $title = $known[$folderName] ?? null;
+            if (! $title?->isMatched()) {
+                $title = $this->titles->forFolder($folderName, $isSeries ? 'tv' : 'movie', resolve: $lookups > 0 && $lookups-- > 0);
+            }
+
+            if ($isSeries) {
                 $series[] = $dir;
-                $seriesPosters[$dir] = $this->tmdb->search($folderName, 'tv')['poster_path'] ?? null;
+                $seriesPosters[$dir] = $title?->poster_path;
                 $seriesSeasonsCount[$dir] = count($subdirs);
-            } elseif ($this->library->hasVideo($disk, $dir)) {
+            } else {
                 $films[] = $dir;
-                $filmPosters[$dir] = $this->tmdb->search($folderName, 'movie')['poster_path'] ?? null;
+                $filmPosters[$dir] = $title?->poster_path;
             }
         }
 
@@ -73,13 +89,14 @@ class VideoController extends Controller
             $seasonVideos[basename($seasonDir)] = $this->library->videos($disk, $seasonDir);
         }
 
-        // اطلاعات TMDb برای پوشه اصلی سریال یا فیلم (پوشه‌ی سطح اول)؛ پوشه‌ی فصل‌ها اطلاعات ندارد
+        // اطلاعات TMDb از دیتابیس (یک بار واکشی و ذخیره می‌شود)؛ پوشه‌ی فصل‌ها اطلاعات ندارد
         $tmdbInfo = null;
         $tmdbType = count($subdirs) > 0 ? 'tv' : 'movie';
         $isTopLevel = $currentPath !== '' && ! str_contains($currentPath, '/');
         if ($isTopLevel && ($subdirs !== [] || $videoFiles !== [])) {
-            $found = $this->tmdb->search(basename($currentPath), $tmdbType);
-            $tmdbInfo = isset($found['id']) ? $this->tmdb->details($found['id'], $tmdbType) : $found;
+            $title = $this->titles->forFolder($currentPath, $tmdbType);
+            $tmdbInfo = $title?->details;
+            $tmdbType = $title?->media_type ?? $tmdbType;
         }
 
         $isAdmin = AdminAuth::check($request);

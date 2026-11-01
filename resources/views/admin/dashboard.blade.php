@@ -42,7 +42,14 @@
                 <div class="small mt-2">
                     <span class="badge bg-primary">HLS چندصدایی: {{ $stats['hls'] }}</span>
                     <span class="badge bg-secondary">MP4: {{ $stats['mp4'] }}</span>
-                    @if($stats['waiting'])<span class="badge bg-warning text-dark">در انتظار تبدیل: {{ $stats['waiting'] }}</span>@endif
+                    @if(($stats['unreviewed'] ?? 0) + ($stats['unmatched'] ?? 0) > 0)
+                    <div class="small mt-2">
+                        <a href="{{ route('admin.library') }}" class="text-warning">
+                            {{ $stats['unreviewed'] ?? 0 }} عنوان فقط حدسی وصل شده @if($stats['unmatched'] ?? 0)· {{ $stats['unmatched'] }} عنوان بدون اطلاعات @endif — بررسی کنید
+                        </a>
+                    </div>
+                @endif
+                @if($stats['waiting'])<span class="badge bg-warning text-dark">در انتظار تبدیل: {{ $stats['waiting'] }}</span>@endif
                 </div>
             </div>
         </div>

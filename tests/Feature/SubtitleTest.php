@@ -2,10 +2,13 @@
 
 use App\Services\VideoLibrary;
 use App\Support\SubtitleConverter;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+
+uses(RefreshDatabase::class);
 
 const SRT = "1\n00:00:01,000 --> 00:00:02,500\nسلام دنیا\n\n2\n00:00:03,000 --> 00:00:04,000\n{\\an8}Hello\n";
 

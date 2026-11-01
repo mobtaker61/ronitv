@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Title;
 use App\Services\LibraryManager;
+use App\Services\TitleCatalog;
 use App\Services\VideoLibrary;
 use App\Support\DownloadStatus;
 use App\Support\SafePath;
@@ -18,7 +20,7 @@ class AdminController extends Controller
 {
     private const CONVERTIBLE = ['mkv', 'avi', 'mov', 'wmv'];
 
-    public function __construct(private LibraryManager $library) {}
+    public function __construct(private LibraryManager $library, private TitleCatalog $titles) {}
 
     public function dashboard()
     {
@@ -52,6 +54,13 @@ class AdminController extends Controller
         }
 
         $hlsDisk = Storage::disk('hls');
+        try {
+            $stats['unreviewed'] = Title::where('matched_by', 'auto')->whereNotNull('tmdb_id')->count();
+            $stats['unmatched'] = Title::whereNull('tmdb_id')->count();
+        } catch (Throwable) {
+            $stats['unreviewed'] = $stats['unmatched'] = 0;
+        }
+
         $stats['bytes'] += array_sum(array_map(fn ($f) => $hlsDisk->size($f), $hlsDisk->allFiles()));
 
         $root = $videos->path('');
@@ -92,10 +101,14 @@ class AdminController extends Controller
 
         abort_if($current !== '' && ! Storage::disk('videos')->directoryExists($current), 404);
 
+        $entries = $this->library->entries($current);
+
         return view('admin.library', [
             'current' => $current,
-            'entries' => $this->library->entries($current),
+            'entries' => $entries,
             'folders' => $this->allFolders(),
+            // Top-level folders are the titles: show which TMDb entry each one is linked to.
+            'titles' => $current === '' ? $this->titles->forFolders(array_column($entries['dirs'], 'name')) : [],
         ]);
     }
 

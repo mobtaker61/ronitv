@@ -27,7 +27,7 @@ class SubtitleFinder
 
     public function __construct(
         private SubSourceClient $api,
-        private TmdbService $tmdb,
+        private TitleCatalog $titles,
     ) {}
 
     /**
@@ -171,17 +171,17 @@ class SubtitleFinder
 
     private function movieId(string $videoPath): int
     {
-        $title = $this->titleFolder($videoPath);
+        $folder = $this->titleFolder($videoPath);
         $season = $this->season($videoPath);
-        $type = $season !== null ? 'tv' : 'movie';
 
-        $found = $this->tmdb->search($title, $type);
-        $details = isset($found['id']) ? $this->tmdb->details($found['id'], $type) : null;
-        $imdb = $details['external_ids']['imdb_id'] ?? $details['imdb_id'] ?? null;
-        $year = (int) substr((string) ($details['release_date'] ?? $details['first_air_date'] ?? ''), 0, 4) ?: null;
+        // The folder's TMDb title was chosen once (by the admin, or guessed once) and is stored: no name search here.
+        $title = $this->titles->forFolder($folder, $season !== null ? 'tv' : 'movie');
+        $imdb = $title?->imdb_id;
+        $name = $title?->original_title ?: $title?->title ?: $folder;
+        $year = $title?->year;
 
-        return Cache::remember('subsource:movie:'.md5("{$title}|{$season}"), 86400 * 30, function () use ($imdb, $title, $year, $season) {
-            $results = $this->api->searchMovies($imdb, $title, $year, $season);
+        return Cache::remember('subsource:movie:'.md5(($title?->tmdb_id ?? $folder).'|'.$season), 86400 * 30, function () use ($imdb, $name, $year, $season) {
+            $results = $this->api->searchMovies($imdb, $name, $year, $season);
 
             if ($season !== null) {
                 $results = array_values(array_filter($results, fn ($r) => (int) ($r['season'] ?? 0) === $season)) ?: [];

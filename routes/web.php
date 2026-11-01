@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminTitleController;
 use App\Http\Controllers\BunnyVodController;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\SubtitleController;
@@ -27,6 +28,10 @@ Route::middleware(['admin', 'throttle:120,1'])->group(function () {
     Route::post('/admin/rename', [AdminController::class, 'rename'])->name('admin.rename');
     Route::post('/admin/move', [AdminController::class, 'move'])->name('admin.move');
     Route::post('/admin/delete', [AdminController::class, 'delete'])->name('admin.delete');
+    Route::get('/admin/titles/search', [AdminTitleController::class, 'search'])->name('admin.titles.search');
+    Route::post('/admin/titles/assign', [AdminTitleController::class, 'assign'])->name('admin.titles.assign');
+    Route::post('/admin/titles/refresh', [AdminTitleController::class, 'refresh'])->name('admin.titles.refresh');
+    Route::post('/admin/titles/reset', [AdminTitleController::class, 'reset'])->name('admin.titles.reset');
 
     Route::get('/upload', [UploadController::class, 'showUploadForm'])->name('upload.form');
     Route::post('/upload', [UploadController::class, 'upload'])->name('upload.video');

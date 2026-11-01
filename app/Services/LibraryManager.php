@@ -16,6 +16,8 @@ class LibraryManager
 {
     private const SIDECAR_EXTENSIONS = ['vtt', 'srt'];
 
+    public function __construct(private TitleCatalog $titles) {}
+
     /**
      * Folders and files of one directory, with enough detail for a management table.
      * Subtitle sidecars are folded into their video's row.
@@ -31,6 +33,7 @@ class LibraryManager
             'name' => basename($d),
             'path' => $d,
             'items' => count($disk->files($d)) + count($disk->directories($d)),
+            'series' => count($disk->directories($d)) > 0,   // seasons inside: a series rather than a single film
         ], $disk->directories($dir));
         usort($dirs, fn ($a, $b) => strnatcasecmp($a['name'], $b['name']));
 
@@ -135,6 +138,10 @@ class LibraryManager
             }
 
             $disk->deleteDirectory($path);
+
+            if (! str_contains($path, '/')) {
+                $this->lookups(fn () => $this->titles->forgetFolder($path));
+            }
             $this->lookups(fn () => SubtitleLookup::where('video_path', 'like', $this->escapeLike($path).'/%')->delete());
 
             return;
@@ -227,6 +234,11 @@ class LibraryManager
 
         if ($path !== $target) {
             $disk->move($path, $target);
+
+            // A top-level folder carries its TMDb match along while it stays top-level; otherwise it is no longer a title.
+            if (! str_contains($path, '/')) {
+                $this->lookups(fn () => str_contains($target, '/') ? $this->titles->forgetFolder($path) : $this->titles->renameFolder($path, $target));
+            }
 
             $this->lookups(fn () => SubtitleLookup::where('video_path', 'like', $this->escapeLike($path).'/%')->each(
                 fn (SubtitleLookup $lookup) => $lookup->update(['video_path' => $target.substr($lookup->video_path, strlen($path))]),

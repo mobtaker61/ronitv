@@ -5,9 +5,12 @@ use App\Jobs\ProcessVideo;
 use App\Services\Ffmpeg;
 use App\Services\MediaProcessor;
 use App\Services\VideoLibrary;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+
+uses(RefreshDatabase::class);
 
 function ffmpegAvailable(): bool
 {

@@ -1,12 +1,16 @@
 <?php
 
+use App\Models\Title;
 use App\Support\SafePath;
 use App\Support\UrlGuard;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     config([
@@ -133,13 +137,19 @@ it('keeps the home page up when TMDb is down', function () {
     $this->get('/')->assertOk()->assertSee('Movie');
 });
 
-it('caches TMDb lookups', function () {
+it('looks a new folder up on TMDb once, stores the match and then never asks again', function () {
     config(['services.tmdb.key' => 'test']);
     Storage::disk('videos')->put('Movie/film.mp4', 'x');
-    Http::fake(['api.themoviedb.org/*' => Http::response(['results' => [['id' => 1, 'poster_path' => '/p.jpg']]])]);
+    Http::fake([
+        'api.themoviedb.org/3/search/movie*' => Http::response(['results' => [['id' => 1, 'title' => 'Film', 'poster_path' => '/p.jpg']]]),
+        'api.themoviedb.org/3/movie/1*' => Http::response(['id' => 1, 'title' => 'Film', 'overview' => 'x', 'poster_path' => '/p.jpg', 'release_date' => '2013-01-01']),
+    ]);
 
     $this->get('/')->assertOk()->assertSee('/p.jpg');
-    $this->get('/')->assertOk();
+    $sent = count(Http::recorded());
+    $this->get('/')->assertOk()->assertSee('/p.jpg');
+    $this->get('/folder/Movie')->assertOk();
 
-    Http::assertSentCount(1);
+    expect(count(Http::recorded()))->toBe($sent);   // second visit and the detail page read the database
+    expect(Title::first())->folder->toBe('Movie')->tmdb_id->toBe(1)->matched_by->toBe('auto')->year->toBe(2013);
 });

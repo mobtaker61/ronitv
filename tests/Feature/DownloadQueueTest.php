@@ -3,11 +3,14 @@
 use App\Jobs\DownloadRemoteVideo;
 use App\Services\RemoteDownloader;
 use App\Support\DownloadStatus;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     config([
