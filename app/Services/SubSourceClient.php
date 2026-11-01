@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -73,12 +74,19 @@ class SubSourceClient
             throw new RuntimeException('SUBSOURCE_API_KEY is not set.');
         }
 
-        $response = $this->request()->get(rtrim(config('services.subsource.base_url'), '/').'/'.$path, $query);
+        $url = rtrim(config('services.subsource.base_url'), '/').'/'.$path;
 
-        if ($response->status() === 429) {
-            // Out of quota: wait the advertised time once (capped), then try again.
-            sleep(min(10, max(1, (int) $response->header('Retry-After'))));
-            $response = $this->request()->get(rtrim(config('services.subsource.base_url'), '/').'/'.$path, $query);
+        try {
+            $response = $this->request()->get($url, $query);
+
+            if ($response->status() === 429) {
+                // Out of quota: wait the advertised time once (capped), then try again.
+                sleep(min(10, max(1, (int) $response->header('Retry-After'))));
+                $response = $this->request()->get($url, $query);
+            }
+        } catch (ConnectionException $e) {
+            // The network is not a RuntimeException by itself; callers handle "SubSource trouble" uniformly.
+            throw new RuntimeException("SubSource is unreachable for {$path}.", 0, $e);
         }
 
         if ($response->failed()) {

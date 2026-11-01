@@ -3,6 +3,7 @@
 use App\Models\SubtitleLookup;
 use App\Services\SubtitleFinder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -227,4 +228,20 @@ it('fetches missing subtitles in bulk and leaves videos that already have one', 
         ->assertSuccessful();
 
     Storage::disk('videos')->assertExists('Film/Film.fa.vtt');
+});
+
+it('treats an unreachable SubSource like any other service trouble, not a crash', function () {
+    Storage::disk('videos')->put('Film/Film.mkv', 'x');
+    config(['services.tmdb.key' => 't', 'services.subsource.key' => 'k']);
+    resetHttp();
+    Http::fake([
+        'api.themoviedb.org/*' => Http::response(['results' => [['id' => 1]], 'imdb_id' => 'tt1']),
+        'api.subsource.net/*' => fn () => throw new ConnectionException('cURL error 35: Connection was reset'),
+    ]);
+
+    expect(fn () => app(SubtitleFinder::class)->fetch('Film/Film.mkv'))->toThrow(RuntimeException::class, 'unreachable');
+    expect(SubtitleLookup::count())->toBe(0);                                   // an outage is not a "no subtitle" result
+
+    $this->withSession(['admin_auth' => true])->getJson('/subtitles/online?video=Film/Film.mkv')->assertStatus(502);
+    $this->withSession(['admin_auth' => true])->postJson('/subtitles/online', ['video' => 'Film/Film.mkv'])->assertStatus(502);
 });

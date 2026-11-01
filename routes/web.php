@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminSubtitleBatchController;
 use App\Http\Controllers\AdminTitleController;
 use App\Http\Controllers\BunnyVodController;
 use App\Http\Controllers\DownloadController;
@@ -32,6 +33,8 @@ Route::middleware(['admin', 'throttle:120,1'])->group(function () {
     Route::post('/admin/titles/assign', [AdminTitleController::class, 'assign'])->name('admin.titles.assign');
     Route::post('/admin/titles/refresh', [AdminTitleController::class, 'refresh'])->name('admin.titles.refresh');
     Route::post('/admin/titles/reset', [AdminTitleController::class, 'reset'])->name('admin.titles.reset');
+    Route::post('/admin/subtitles/batch', [AdminSubtitleBatchController::class, 'start'])->name('admin.subtitles.batch');
+    Route::get('/admin/subtitles/batch', [AdminSubtitleBatchController::class, 'status'])->name('admin.subtitles.batch.status');
 
     Route::get('/upload', [UploadController::class, 'showUploadForm'])->name('upload.form');
     Route::post('/upload', [UploadController::class, 'upload'])->name('upload.video');

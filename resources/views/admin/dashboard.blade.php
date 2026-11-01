@@ -54,10 +54,38 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="admin-card h-100">
+            <div class="admin-card h-100" id="subtitleCard"
+                 data-status-url="{{ route('admin.subtitles.batch.status') }}"
+                 data-running="{{ ($batch['running'] ?? false) ? 1 : 0 }}">
                 <div class="text-muted small mb-1">زیرنویس فارسی</div>
                 <div class="fs-4">{{ $stats['noSubtitle'] }} ویدیو بدون زیرنویس</div>
-                <div class="small text-muted mt-1">برای دریافت: دکمه‌ی CC کنار هر قسمت، یا <code dir="ltr">php artisan subtitles:fetch --all</code></div>
+
+                <div id="subtitleBatch" class="small mt-2" @if(! $batch) style="display:none" @endif>
+                    <div class="progress mb-1" style="height: 6px;"><div class="progress-bar" id="subtitleBar" style="width: {{ $batch && $batch['total'] ? round($batch['done'] / $batch['total'] * 100) : 0 }}%"></div></div>
+                    <div id="subtitleSummary" class="text-muted">
+                        @if($batch)
+                            {{ $batch['done'] }} از {{ $batch['total'] }} · پیدا شد: {{ $batch['stored'] }} · نبود: {{ $batch['none'] }}@if($batch['failed']) · خطا: {{ $batch['failed'] }}@endif
+                            @if($batch['running']) (در حال اجرا) @elseif(! empty($batch['aborted'])) (متوقف شد) @else (تمام شد) @endif
+                        @endif
+                    </div>
+                    <div id="subtitleError" class="text-danger">{{ $batch['error'] ?? '' }}</div>
+                </div>
+
+                @if(! $subsourceConfigured)
+                    <div class="small text-warning mt-2">کلید SubSource تنظیم نشده است (<code>SUBSOURCE_API_KEY</code>).</div>
+                @elseif($stats['subtitleTodoAll'] > 0)
+                    <form method="POST" action="{{ route('admin.subtitles.batch') }}" class="mt-2" id="subtitleForm">
+                        @csrf
+                        <div class="form-check small mb-2">
+                            <input class="form-check-input" type="checkbox" name="only_confirmed" id="onlyConfirmed" value="1" checked>
+                            <label class="form-check-label" for="onlyConfirmed">فقط عنوان‌های تأییدشده ({{ $stats['subtitleTodoConfirmed'] }} از {{ $stats['subtitleTodoAll'] }} ویدیو)</label>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-success" @disabled($batch['running'] ?? false)><i class="fas fa-closed-captioning me-1"></i>دریافت زیرنویس‌ها از SubSource</button>
+                        <div class="form-text">نتیجه‌ی هر ویدیو ذخیره می‌شود و دوباره جستجو نمی‌شود.</div>
+                    </form>
+                @else
+                    <div class="small text-success mt-2">برای همه‌ی ویدیوها زیرنویس هست یا بی‌نتیجه ثبت شده.</div>
+                @endif
             </div>
         </div>
     </div>
@@ -101,3 +129,30 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    (function () {
+        const card = document.getElementById('subtitleCard');
+        if (!card || card.dataset.running !== '1') return;
+
+        const tick = async () => {
+            try {
+                const response = await fetch(card.dataset.statusUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+                const batch = await response.json();
+                if (!batch) return;
+
+                document.getElementById('subtitleBar').style.width = (batch.total ? Math.round(batch.done / batch.total * 100) : 100) + '%';
+                document.getElementById('subtitleSummary').textContent =
+                    batch.done + ' از ' + batch.total + ' · پیدا شد: ' + batch.stored + ' · نبود: ' + batch.none +
+                    (batch.failed ? ' · خطا: ' + batch.failed : '') + (batch.running ? ' (در حال اجرا)' : (batch.aborted ? ' (متوقف شد)' : ' (تمام شد)'));
+                document.getElementById('subtitleError').textContent = batch.error || '';
+                if (batch.running) setTimeout(tick, 4000);
+            } catch (error) {
+                setTimeout(tick, 10000);
+            }
+        };
+        setTimeout(tick, 2000);
+    })();
+</script>
+@endpush

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Title;
 use App\Services\LibraryManager;
+use App\Services\SubtitleBatch;
 use App\Services\TitleCatalog;
 use App\Services\VideoLibrary;
 use App\Support\DownloadStatus;
@@ -20,7 +21,7 @@ class AdminController extends Controller
 {
     private const CONVERTIBLE = ['mkv', 'avi', 'mov', 'wmv'];
 
-    public function __construct(private LibraryManager $library, private TitleCatalog $titles) {}
+    public function __construct(private LibraryManager $library, private TitleCatalog $titles, private SubtitleBatch $subtitles) {}
 
     public function dashboard()
     {
@@ -83,7 +84,13 @@ class AdminController extends Controller
             $queue['unavailable'] = true; // the page is still useful without the queue figures
         }
 
+        // How many videos a batch would look up: only confirmed titles (the default) and everything.
+        $stats['subtitleTodoConfirmed'] = count($this->subtitles->pending(null, true));
+        $stats['subtitleTodoAll'] = count($this->subtitles->pending(null, false));
+
         return view('admin.dashboard', [
+            'batch' => $this->subtitles->status(),
+            'subsourceConfigured' => (string) config('services.subsource.key') !== '',
             'stats' => $stats,
             'disk' => $disk,
             'queue' => $queue,
