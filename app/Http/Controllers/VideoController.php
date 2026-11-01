@@ -2,17 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\AdminBasicAuth;
 use App\Services\TmdbService;
+use App\Services\VideoLibrary;
 use App\Support\SafePath;
-use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
 class VideoController extends Controller
 {
-    public const VIDEO_EXTENSIONS = ['mp4', 'avi', 'mkv', 'mov', 'wmv'];
+    public const VIDEO_EXTENSIONS = VideoLibrary::VIDEO_EXTENSIONS;
 
-    public function __construct(protected TmdbService $tmdb) {}
+    public function __construct(
+        protected TmdbService $tmdb,
+        protected VideoLibrary $library,
+    ) {}
 
     public function index()
     {
@@ -32,7 +37,7 @@ class VideoController extends Controller
                 $series[] = $dir;
                 $seriesPosters[$dir] = $this->tmdb->search($folderName, 'tv')['poster_path'] ?? null;
                 $seriesSeasonsCount[$dir] = count($subdirs);
-            } elseif ($this->videoFiles($disk, $dir) !== []) {
+            } elseif ($this->library->hasVideo($disk, $dir)) {
                 $films[] = $dir;
                 $filmPosters[$dir] = $this->tmdb->search($folderName, 'movie')['poster_path'] ?? null;
             }
@@ -41,7 +46,7 @@ class VideoController extends Controller
         return view('index', compact('films', 'series', 'filmPosters', 'seriesPosters', 'seriesSeasonsCount'));
     }
 
-    public function folder(?string $path = null)
+    public function folder(Request $request, ?string $path = null)
     {
         $disk = Storage::disk('videos');
 
@@ -56,12 +61,12 @@ class VideoController extends Controller
         }
 
         $subdirs = $currentPath ? $disk->directories($currentPath) : [];
-        $videoFiles = $currentPath ? $this->videoFiles($disk, $currentPath) : [];
+        $videoFiles = $currentPath ? $this->library->videos($disk, $currentPath) : [];
 
         // اگر سریال است (دارای زیرپوشه)
         $seasonVideos = [];
         foreach ($subdirs as $seasonDir) {
-            $seasonVideos[basename($seasonDir)] = $this->videoFiles($disk, $seasonDir);
+            $seasonVideos[basename($seasonDir)] = $this->library->videos($disk, $seasonDir);
         }
 
         // اطلاعات TMDb برای پوشه اصلی سریال یا فیلم (پوشه‌ی سطح اول)؛ پوشه‌ی فصل‌ها اطلاعات ندارد
@@ -73,11 +78,14 @@ class VideoController extends Controller
             $tmdbInfo = isset($found['id']) ? $this->tmdb->details($found['id'], $tmdbType) : $found;
         }
 
-        return view('folder', compact('subdirs', 'videoFiles', 'currentPath', 'tmdbInfo', 'tmdbType', 'seasonVideos'));
+        $isAdmin = AdminBasicAuth::passes($request);
+        $languages = $this->library->languages();
+
+        return view('folder', compact('subdirs', 'videoFiles', 'currentPath', 'tmdbInfo', 'tmdbType', 'seasonVideos', 'isAdmin', 'languages'));
     }
 
     /**
-     * JSON list of the video files in one season folder (used by the season tabs).
+     * JSON list of the video files (with subtitles) in one season folder, used by the season tabs.
      */
     public function seasonVideos(string $series, string $season)
     {
@@ -87,22 +95,6 @@ class VideoController extends Controller
             abort(404);
         }
 
-        $result = array_map(fn ($file) => [
-            'name' => basename($file),
-            'url' => asset('storage/videos/'.$seasonPath.'/'.basename($file)),
-        ], $this->videoFiles(Storage::disk('videos'), $seasonPath));
-
-        return response()->json(array_values($result));
-    }
-
-    /**
-     * @return list<string>
-     */
-    protected function videoFiles(Filesystem $disk, string $dir): array
-    {
-        return array_values(array_filter(
-            $disk->files($dir),
-            fn ($file) => in_array(strtolower(pathinfo($file, PATHINFO_EXTENSION)), self::VIDEO_EXTENSIONS, true),
-        ));
+        return response()->json($this->library->videos(Storage::disk('videos'), $seasonPath));
     }
 }

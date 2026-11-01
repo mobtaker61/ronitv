@@ -1,0 +1,84 @@
+/* Video.js skin tuned to the site theme (uses the variables from public/css/app.css) */
+.video-js {
+    font-family: var(--persian-font, inherit);
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.video-js .vjs-play-progress,
+.video-js .vjs-volume-level {
+    background-color: var(--netflix-red, #e50914);
+}
+.video-js .vjs-big-play-button {
+    background-color: rgba(229, 9, 20, 0.9);
+    border: 0;
+    border-radius: 50%;
+    width: 2.6em;
+    height: 2.6em;
+    line-height: 2.6em;
+    margin-top: -1.3em;
+    margin-left: -1.3em;
+}
+[data-theme="light"] .video-js .vjs-play-progress,
+[data-theme="light"] .video-js .vjs-volume-level {
+    background-color: #007bff;
+}
+
+/* Persian subtitles: let the browser pick the direction per cue */
+.video-js .vjs-text-track-display div,
+.video-js .vjs-text-track-cue {
+    unicode-bidi: plaintext;
+    text-align: center;
+}
+.video-js .vjs-text-track-cue > div {
+    background: rgba(0, 0, 0, 0.55) !important;
+    border-radius: 4px;
+    padding: 0 0.4em;
+}
+
+.video-js .vjs-sub-delay {
+    font-size: 1.4em;
+    width: 2em;
+    line-height: 2.1em;
+}
+
+.sub-offset-badge {
+    position: absolute;
+    top: 12px;
+    inset-inline-start: 12px;
+    padding: 4px 10px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 0.85rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 5;
+}
+.sub-offset-badge.show {
+    opacity: 1;
+}
+
+#episodeList {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+#episodeList .list-group-item.active {
+    background: rgba(229, 9, 20, 0.15);
+    border-color: var(--netflix-red, #e50914);
+    color: inherit;
+}
+
+#episodeList .list-group-item {
+    background: var(--netflix-dark, #181818);
+    color: inherit;
+    border-color: rgba(128, 128, 128, 0.25);
+}
+#episodeList .list-group-item.active {
+    background: rgba(229, 9, 20, 0.15);
+}
+[data-theme="light"] #episodeList .list-group-item.active {
+    background: rgba(0, 123, 255, 0.12);
+    border-color: #007bff;
+}

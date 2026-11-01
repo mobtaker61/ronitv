@@ -149,127 +149,75 @@
             </div>
         @endif
 
-        @if(count($seasonVideos) > 0)
-            <!-- نمایش تب فصل‌ها و لیست ویدیوها با AJAX -->
-            <div class="row flex-row-reverse">
+        @if(session('success'))
+            <div class="alert alert-success py-2">{{ session('success') }}</div>
+        @endif
+        @if(session('error'))
+            <div class="alert alert-danger py-2">{{ session('error') }}</div>
+        @endif
+
+        @if(count($seasonVideos) > 0 || count($videoFiles) > 0)
+            @php
+                $watchData = [
+                    'admin' => $isAdmin,
+                    'seasons' => count($seasonVideos) > 0
+                        ? collect($seasonVideos)->map(fn ($videos, $name) => ['name' => $name, 'videos' => $videos])->values()->all()
+                        : [['name' => null, 'videos' => $videoFiles]],
+                ];
+            @endphp
+            <script type="application/json" id="watchData">{!! json_encode($watchData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
+
+            <div class="row flex-row-reverse" id="watch">
                 <div class="col-md-5 order-md-1 mb-4">
-                    <ul class="nav nav-tabs mb-3 justify-content-end" id="seasonTabs" role="tablist">
-                        @foreach(array_keys($seasonVideos) as $i => $season)
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link{{ $i==0 ? ' active' : '' }}" id="tab-{{ $season }}" data-season="{{ $season }}" data-series="{{ $currentPath }}" type="button" role="tab">{{ $season }}</button>
-                            </li>
-                        @endforeach
-                    </ul>
-                    <ul class="list-group" id="seasonVideoList">
-                        @foreach($seasonVideos[array_keys($seasonVideos)[0]] as $file)
-                            @php $fileName = basename($file); @endphp
-                            <li class="list-group-item d-flex justify-content-between align-items-center flex-row-reverse">
-                                <span class="file-icons">
-                                    <a href="{{ asset('storage/videos/' . $currentPath . '/' . array_keys($seasonVideos)[0] . '/' . $fileName) }}" class="btn btn-sm btn-outline-success ms-2" download title="دانلود"><i class="fas fa-download"></i></a>
-                                    <button class="btn btn-sm btn-outline-primary play-btn" data-src="{{ asset('storage/videos/' . $currentPath . '/' . array_keys($seasonVideos)[0] . '/' . $fileName) }}" title="تماشا"><i class="fas fa-play"></i></button>
-                                </span>
-                                <span class="file-name">{{ $fileName }}</span>
-                            </li>
-                        @endforeach
-                    </ul>
+                    <ul class="nav nav-tabs mb-3 justify-content-end" id="seasonTabs" role="tablist"></ul>
+                    <ul class="list-group" id="episodeList"></ul>
                 </div>
                 <div class="col-md-7 order-md-2 mb-4">
                     <div class="card bg-black">
-                        <div class="card-body">
-                            <div class="ratio ratio-16x9">
-                                <video id="mainPlayer" class="w-100 rounded bg-black" controls>
-                                    <source src="" type="video/mp4">
-                                    مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
-                                </video>
-                            </div>
+                        <div class="card-body p-2">
+                            <video id="mainPlayer" class="video-js vjs-big-play-centered vjs-fluid" controls preload="metadata" playsinline></video>
                         </div>
                     </div>
                 </div>
             </div>
-            <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const player = document.getElementById('mainPlayer');
-                    function bindPlayBtns() {
-                        document.querySelectorAll('.play-btn').forEach(btn => {
-                            btn.addEventListener('click', function() {
-                                const src = this.getAttribute('data-src');
-                                player.querySelector('source').setAttribute('src', src);
-                                player.load();
-                                player.play();
-                            });
-                        });
-                    }
-                    bindPlayBtns();
-                    document.querySelectorAll('#seasonTabs .nav-link').forEach(tab => {
-                        tab.addEventListener('click', function() {
-                            document.querySelectorAll('#seasonTabs .nav-link').forEach(t => t.classList.remove('active'));
-                            this.classList.add('active');
-                            const season = this.getAttribute('data-season');
-                            const series = this.getAttribute('data-series');
-                            fetch(`/ajax/season-videos/${series}/${season}`)
-                                .then(res => res.json())
-                                .then(files => {
-                                    const list = document.getElementById('seasonVideoList');
-                                    list.innerHTML = '';
-                                    files.forEach(file => {
-                                        const li = document.createElement('li');
-                                        li.className = 'list-group-item d-flex justify-content-between align-items-center flex-row-reverse';
-                                        li.innerHTML = `<span class='file-icons'>
-                                            <a href='${file.url}' class='btn btn-sm btn-outline-success ms-2' download title='دانلود'><i class='fas fa-download'></i></a>
-                                            <button class='btn btn-sm btn-outline-primary play-btn' data-src='${file.url}' title='تماشا'><i class='fas fa-play'></i></button>
-                                            </span>
-                                            <span class='file-name'>${file.name}</span>`;
-                                        list.appendChild(li);
-                                    });
-                                    bindPlayBtns();
-                                });
-                        });
-                    });
-                });
-            </script>
-        @else
-            <!-- حالت فیلم یا پوشه بدون فصل -->
-            <div class="row flex-row-reverse">
-                <div class="col-md-5 order-md-1 mb-4">
-                    <ul class="list-group">
-                        @foreach($videoFiles as $file)
-                            @php $fileName = basename($file); @endphp
-                            <li class="list-group-item d-flex justify-content-between align-items-center flex-row-reverse">
-                                <span class="file-icons">
-                                    <a href="{{ asset('storage/videos/' . $currentPath . '/' . $fileName) }}" class="btn btn-sm btn-outline-success ms-2" download title="دانلود"><i class="fas fa-download"></i></a>
-                                    <button class="btn btn-sm btn-outline-primary play-btn" data-src="{{ asset('storage/videos/' . $currentPath . '/' . $fileName) }}" title="تماشا"><i class="fas fa-play"></i></button>
-                                </span>
-                                <span class="file-name">{{ $fileName }}</span>
-                            </li>
-                        @endforeach
-                    </ul>
-                </div>
-                <div class="col-md-7 order-md-2 mb-4">
-                    <div class="card bg-black">
-                        <div class="card-body">
-                            <div class="ratio ratio-16x9">
-                                <video id="mainPlayer" class="w-100 rounded bg-black" controls>
-                                    <source src="" type="video/mp4">
-                                    مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
-                                </video>
+
+            @if($isAdmin)
+                <div class="modal fade" id="subtitleModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">زیرنویس: <span id="subtitleModalTitle" dir="ltr"></span></h5>
+                                <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="بستن"></button>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" id="subtitleDeleteUrl" value="{{ route('subtitle.destroy') }}">
+                                <div id="subtitleExisting" class="mb-3"></div>
+                                <form method="POST" action="{{ route('subtitle.store') }}" enctype="multipart/form-data">
+                                    @csrf
+                                    <input type="hidden" name="video" id="subtitleVideo">
+                                    <div class="mb-2">
+                                        <label class="form-label" for="subtitleLang">زبان</label>
+                                        <select name="lang" id="subtitleLang" class="form-select" required>
+                                            @foreach($languages as $code => $label)
+                                                <option value="{{ $code }}">{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label" for="subtitleFile">فایل زیرنویس (SRT یا VTT، حداکثر ۲ مگابایت)</label>
+                                        <input type="file" name="subtitle" id="subtitleFile" class="form-control" accept=".srt,.vtt" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary"><i class="fas fa-upload me-1"></i>افزودن زیرنویس</button>
+                                </form>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const player = document.getElementById('mainPlayer');
-                    document.querySelectorAll('.play-btn').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const src = this.getAttribute('data-src');
-                            player.querySelector('source').setAttribute('src', src);
-                            player.load();
-                            player.play();
-                        });
-                    });
-                });
-            </script>
+            @endif
+
+            @push('scripts')
+                @vite(['resources/js/player.js'])
+            @endpush
         @endif
 
         @if(count($subdirs) == 0 && count($videoFiles) == 0)

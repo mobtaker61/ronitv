@@ -14,6 +14,7 @@ use Tests\TestCase;
 */
 
 pest()->extend(TestCase::class)
+    ->beforeEach(fn () => $this->withoutVite())
  // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
 

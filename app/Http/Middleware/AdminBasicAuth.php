@@ -16,23 +16,34 @@ class AdminBasicAuth
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $user = (string) config('admin.user');
-        $hash = (string) config('admin.password_hash');
-
         // Fail closed when the admin account has not been configured.
-        if ($user === '' || $hash === '') {
+        if (! self::configured()) {
             abort(503, 'Admin access is not configured.');
         }
 
-        $given = (string) $request->getUser();
-        $password = (string) $request->getPassword();
-
-        $valid = hash_equals($user, $given) && Hash::check($password, $hash);
-
-        if (! $valid) {
+        if (! self::passes($request)) {
             return response('Unauthorized', 401, ['WWW-Authenticate' => 'Basic realm="RoniTV Admin", charset="UTF-8"']);
         }
 
         return $next($request);
+    }
+
+    public static function configured(): bool
+    {
+        return (string) config('admin.user') !== '' && (string) config('admin.password_hash') !== '';
+    }
+
+    /**
+     * Whether the request carries valid admin credentials, without challenging the browser.
+     * Used to show management controls on public pages.
+     */
+    public static function passes(Request $request): bool
+    {
+        if (! self::configured()) {
+            return false;
+        }
+
+        return hash_equals((string) config('admin.user'), (string) $request->getUser())
+            && Hash::check((string) $request->getPassword(), (string) config('admin.password_hash'));
     }
 }
