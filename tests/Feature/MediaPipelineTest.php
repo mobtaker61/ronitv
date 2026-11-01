@@ -160,3 +160,25 @@ it('ignores forced or ad-only subtitle tracks and strips promo cues from real on
     expect(app(MediaProcessor::class)->process('Show/e4.mkv')['subtitles'])->toBe([]);
     Storage::disk('videos')->assertMissing('Show/e4.fa.vtt');
 })->skip(fn () => ! ffmpegAvailable(), 'ffmpeg is not installed');
+
+it('adds the video rendition to a master playlist that ffmpeg left without one', function () {
+    $audioOnly = '#EXTM3U
+#EXT-X-VERSION:7
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="group_aud",NAME="audio_1",DEFAULT=YES,LANGUAGE="fa",URI="paud0.m3u8"
+';
+    $probe = ['size' => 300_000_000, 'duration' => 3000.0, 'video' => ['codec' => 'h264', 'profile' => 'High', 'level' => 31, 'width' => 854, 'height' => 428]];
+
+    $fixed = app(MediaProcessor::class)->withVideoVariant($audioOnly, $probe);
+
+    expect($fixed)->toContain('#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=854x428,CODECS="avc1.64001f,mp4a.40.2",AUDIO="group_aud"')
+        ->toEndWith('
+p0.m3u8
+');
+
+    // a playlist that already has its video entry is left alone
+    expect(app(MediaProcessor::class)->withVideoVariant($fixed, $probe))->toBe($fixed);
+
+    // unknown profile: no CODECS claim rather than a wrong one
+    $probe['video']['profile'] = 'Exotic';
+    expect(app(MediaProcessor::class)->withVideoVariant($audioOnly, $probe))->not->toContain('CODECS');
+});

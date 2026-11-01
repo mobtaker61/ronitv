@@ -50,7 +50,7 @@ class Ffmpeg
             ];
 
             match ($stream['codec_type'] ?? '') {
-                'video' => $video ??= $info + ['width' => $stream['width'] ?? null, 'height' => $stream['height'] ?? null],
+                'video' => $video ??= $info + ['width' => $stream['width'] ?? null, 'height' => $stream['height'] ?? null, 'profile' => $stream['profile'] ?? null, 'level' => (int) ($stream['level'] ?? 0)],
                 'audio' => $audio[] = $info + ['channels' => (int) ($stream['channels'] ?? 2)],
                 'subtitle' => $subtitles[] = $info + ['text' => in_array($info['codec'], self::TEXT_SUBTITLE_CODECS, true)],
                 default => null,

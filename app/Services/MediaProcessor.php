@@ -269,6 +269,9 @@ class MediaProcessor
         try {
             $this->ffmpeg->run($args, $work);
 
+            // ffmpeg omits the video entry of the master playlist when the source carries no bitrate tags.
+            file_put_contents($work.DIRECTORY_SEPARATOR.'master.m3u8', $this->withVideoVariant((string) file_get_contents($work.DIRECTORY_SEPARATOR.'master.m3u8'), $probe));
+
             // Variant 0 is the video rendition: its duration must match the source.
             $this->assertSameDuration($probe['duration'], $this->ffmpeg->probe($work.DIRECTORY_SEPARATOR.'p0.m3u8')['duration']);
 
@@ -283,6 +286,49 @@ class MediaProcessor
         }
 
         return array_sum(array_map(fn ($f) => $hls->size($f), $hls->files($key)));
+    }
+
+    /**
+     * Make sure the master playlist lists the video rendition. When ffmpeg could not tell the bitrate it writes only the
+     * audio entries, and players then have nothing to play. The values come from the probed source file.
+     *
+     * @param  array<string, mixed>  $probe
+     */
+    public function withVideoVariant(string $master, array $probe): string
+    {
+        if (str_contains($master, '#EXT-X-STREAM-INF')) {
+            return $master;
+        }
+
+        $video = $probe['video'];
+        $attributes = ['BANDWIDTH='.max(1, (int) round($probe['size'] * 8 / max(1.0, $probe['duration'])))];
+
+        if ($video['width'] && $video['height']) {
+            $attributes[] = "RESOLUTION={$video['width']}x{$video['height']}";
+        }
+
+        if ($codec = $this->avcCodec($video)) {
+            $attributes[] = 'CODECS="'.$codec.',mp4a.40.2"';
+        }
+
+        $attributes[] = 'AUDIO="group_aud"';
+
+        return rtrim($master).'
+#EXT-X-STREAM-INF:'.implode(',', $attributes).'
+p0.m3u8
+';
+    }
+
+    /**
+     * RFC 6381 string such as avc1.64001f; null when the profile is not one we can state with certainty.
+     *
+     * @param  array<string, mixed>  $video
+     */
+    private function avcCodec(array $video): ?string
+    {
+        $profile = ['Constrained Baseline' => '42c0', 'Baseline' => '4200', 'Main' => '4d00', 'High' => '6400', 'High 10' => '6e00'][$video['profile'] ?? ''] ?? null;
+
+        return $video['codec'] === 'h264' && $profile && $video['level'] > 0 ? sprintf('avc1.%s%02x', $profile, $video['level']) : null;
     }
 
     /**
