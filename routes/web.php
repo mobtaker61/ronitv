@@ -16,6 +16,7 @@ Route::middleware(['admin', 'throttle:60,1'])->group(function () {
     Route::post('/upload', [UploadController::class, 'upload'])->name('upload.video');
     Route::post('/create-folder', [UploadController::class, 'createFolder'])->name('create.folder');
     Route::post('/download-url', [DownloadController::class, 'downloadFromUrl'])->name('download.url');
+    Route::get('/download-status', [DownloadController::class, 'status'])->name('download.status');
 });
 
 // Bunny VOD

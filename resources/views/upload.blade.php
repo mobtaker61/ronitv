@@ -242,6 +242,14 @@
                     </form>
                 </div>
 
+                <!-- وضعیت دانلودهای صف‌شده -->
+                <div class="upload-card" id="downloadsCard" style="display:none">
+                    <h3 class="upload-title">
+                        <i class="fas fa-tasks me-2"></i>وضعیت دانلودها
+                    </h3>
+                    <div id="downloadsList"></div>
+                </div>
+
                 <!-- فرم ایجاد پوشه جدید -->
                 <div class="upload-card">
                     <h3 class="upload-title">
@@ -334,5 +342,63 @@
             progressBar.style.width = progress + '%';
         }, 500);
     });
+
+    // وضعیت دانلودهای صف‌شده
+    (function () {
+        const card = document.getElementById('downloadsCard');
+        const list = document.getElementById('downloadsList');
+        const labels = {queued: 'در صف', running: 'در حال دانلود', done: 'تمام شد', failed: 'ناموفق'};
+        const colors = {queued: 'secondary', running: 'primary', done: 'success', failed: 'danger'};
+        const fmt = b => b >= 1073741824 ? (b / 1073741824).toFixed(2) + ' GB' : (b / 1048576).toFixed(1) + ' MB';
+        let timer = null;
+
+        function render(items) {
+            card.style.display = items.length ? '' : 'none';
+            list.replaceChildren(...items.map(d => {
+                const pct = d.total > 0 ? Math.round(d.downloaded / d.total * 100) : (d.status === 'done' ? 100 : 0);
+                const row = document.createElement('div');
+                row.className = 'mb-3';
+
+                const head = document.createElement('div');
+                head.className = 'd-flex justify-content-between text-white';
+                const name = document.createElement('span');
+                name.style.direction = 'ltr';
+                name.textContent = d.path;
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-' + (colors[d.status] || 'secondary');
+                badge.textContent = labels[d.status] || d.status;
+                head.append(name, badge);
+
+                const bar = document.createElement('div');
+                bar.className = 'progress mt-1';
+                const fill = document.createElement('div');
+                fill.className = 'progress-bar' + (d.status === 'running' ? ' progress-bar-striped progress-bar-animated' : '');
+                fill.style.width = pct + '%';
+                bar.append(fill);
+
+                const info = document.createElement('small');
+                info.className = d.status === 'failed' ? 'text-danger' : 'text-muted';
+                info.textContent = d.status === 'failed' ? (d.error || '')
+                    : (d.downloaded ? fmt(d.downloaded) + (d.total ? ' / ' + fmt(d.total) : '') : '');
+
+                row.append(head, bar, info);
+                return row;
+            }));
+        }
+
+        async function poll() {
+            try {
+                const res = await fetch('{{ route('download.status') }}', {headers: {'Accept': 'application/json'}});
+                if (!res.ok) throw new Error(res.status);
+                const items = await res.json();
+                render(items);
+                const active = items.some(d => d.status === 'queued' || d.status === 'running');
+                timer = setTimeout(poll, active ? 3000 : 15000);
+            } catch (e) {
+                timer = setTimeout(poll, 15000);
+            }
+        }
+        poll();
+    })();
 </script>
 @endpush

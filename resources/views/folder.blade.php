@@ -26,6 +26,42 @@
         }
     }
 
+    .tmdb-header {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+        padding: 0.75rem;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    [data-theme="light"] .tmdb-header {
+        background: rgba(0,0,0,0.03);
+        border-color: rgba(0,0,0,0.1);
+    }
+    .tmdb-poster {
+        width: 80px;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+    .tmdb-body {
+        min-width: 0;
+        flex: 1;
+    }
+    .tmdb-overview {
+        font-size: 0.9rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    @media (max-width: 576px) {
+        .tmdb-poster { width: 60px; height: 90px; }
+    }
+
     .file-name {
         flex: 1;
         text-align: right;
@@ -75,29 +111,38 @@
                 @endif
             </ol>
         </nav>
-        <!-- اطلاعات TMDb -->
+        <!-- اطلاعات TMDb (سریال و فیلم) -->
         @if(isset($tmdbInfo) && $tmdbInfo)
-            <div class="row mb-4 align-items-center">
-                <div class="col-md-3">
-                    @if(isset($tmdbInfo['poster_path']))
-                        <img src="https://image.tmdb.org/t/p/w500{{ $tmdbInfo['poster_path'] }}" alt="پوستر" class="img-fluid rounded shadow">
-                    @endif
-                </div>
-                <div class="col-md-9">
-                    <h2 class="mb-2">{{ $tmdbInfo['title'] ?? $tmdbInfo['name'] ?? '' }}</h2>
-                    <div class="mb-2">
-                        <span class="badge bg-primary fs-6">امتیاز: {{ $tmdbInfo['vote_average'] ?? '-' }}</span>
-                        @if(isset($tmdbInfo['release_date']) || isset($tmdbInfo['first_air_date']))
-                            <span class="badge bg-secondary fs-6">سال: {{ isset($tmdbInfo['release_date']) ? substr($tmdbInfo['release_date'],0,4) : (isset($tmdbInfo['first_air_date']) ? substr($tmdbInfo['first_air_date'],0,4) : '-') }}</span>
+            @php
+                $tmdbYear = substr($tmdbInfo['release_date'] ?? $tmdbInfo['first_air_date'] ?? '', 0, 4);
+                $tmdbRuntime = $tmdbInfo['runtime'] ?? ($tmdbInfo['episode_run_time'][0] ?? null);
+                $tmdbGenres = array_slice(array_column($tmdbInfo['genres'] ?? [], 'name'), 0, 3);
+            @endphp
+            <div class="tmdb-header mb-3">
+                @if(!empty($tmdbInfo['poster_path']))
+                    <img src="https://image.tmdb.org/t/p/w185{{ $tmdbInfo['poster_path'] }}" alt="پوستر" class="tmdb-poster">
+                @endif
+                <div class="tmdb-body">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <h4 class="mb-0">{{ $tmdbInfo['title'] ?? $tmdbInfo['name'] ?? '' }}</h4>
+                        @if(!empty($tmdbInfo['vote_average']))
+                            <span class="badge bg-primary">★ {{ number_format($tmdbInfo['vote_average'], 1) }}</span>
                         @endif
+                        @if($tmdbYear)
+                            <span class="badge bg-secondary">{{ $tmdbYear }}</span>
+                        @endif
+                        @if($tmdbRuntime)
+                            <span class="badge bg-secondary">{{ $tmdbRuntime }} دقیقه</span>
+                        @endif
+                        @foreach($tmdbGenres as $genre)
+                            <span class="badge border text-body-secondary">{{ $genre }}</span>
+                        @endforeach
                     </div>
-                    <p class="mb-2">{{ $tmdbInfo['overview'] ?? 'خلاصه‌ای موجود نیست.' }}</p>
-                    @if(isset($tmdbInfo['credits']['cast']))
-                        <div class="mb-2">
+                    <p class="tmdb-overview mb-1" title="{{ $tmdbInfo['overview'] ?? '' }}">{{ $tmdbInfo['overview'] ?: 'خلاصه‌ای موجود نیست.' }}</p>
+                    @if(!empty($tmdbInfo['credits']['cast']))
+                        <div class="small text-truncate">
                             <strong>بازیگران:</strong>
-                            @foreach(array_slice($tmdbInfo['credits']['cast'],0,5) as $actor)
-                                <span class="badge bg-light text-dark me-1">{{ $actor['name'] }}</span>
-                            @endforeach
+                            {{ implode('، ', array_column(array_slice($tmdbInfo['credits']['cast'], 0, 5), 'name')) }}
                         </div>
                     @endif
                 </div>

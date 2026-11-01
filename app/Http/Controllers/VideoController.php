@@ -64,10 +64,11 @@ class VideoController extends Controller
             $seasonVideos[basename($seasonDir)] = $this->videoFiles($disk, $seasonDir);
         }
 
-        // اطلاعات TMDb فقط برای پوشه اصلی سریال
+        // اطلاعات TMDb برای پوشه اصلی سریال یا فیلم (پوشه‌ی سطح اول)؛ پوشه‌ی فصل‌ها اطلاعات ندارد
         $tmdbInfo = null;
         $tmdbType = count($subdirs) > 0 ? 'tv' : 'movie';
-        if ($currentPath && count($subdirs) > 0) {
+        $isTopLevel = $currentPath !== '' && ! str_contains($currentPath, '/');
+        if ($isTopLevel && ($subdirs !== [] || $videoFiles !== [])) {
             $found = $this->tmdb->search(basename($currentPath), $tmdbType);
             $tmdbInfo = isset($found['id']) ? $this->tmdb->details($found['id'], $tmdbType) : $found;
         }

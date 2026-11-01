@@ -54,6 +54,12 @@ php artisan tinker --execute="echo Hash::make('your-password');"
 هش را داخل کوتیشن تکی در `.env` قرار دهید. سقف حجم با `MAX_UPLOAD_KB` (به کیلوبایت) تنظیم می‌شود و باید
 از `upload_max_filesize` / `post_max_size` در PHP و `client_max_body_size` در nginx بیشتر نباشد.
 
+### دانلود از لینک (صف)
+
+دانلود از لینک توسط Job (`DownloadRemoteVideo`) در صف انجام می‌شود، پس به زمان request محدود نیست. پیشرفت در
+صفحه‌ی `/upload` نمایش داده می‌شود. روی سرور باید worker اجرا باشد (`deploy/ronitv-worker.conf` برای supervisor).
+در توسعه‌ی محلی با `QUEUE_CONNECTION=sync` همان لحظه اجرا می‌شود؛ با `composer dev` هم worker بالا می‌آید.
+
 ## 🎯 مسیرها
 
 - `/` - صفحه اصلی (لیست پوشه‌های سطح اول)
