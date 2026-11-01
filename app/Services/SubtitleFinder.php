@@ -131,7 +131,11 @@ class SubtitleFinder
         foreach ($ids as $candidate) {
             try {
                 [$content, $extension] = $this->extract($this->api->download($candidate['id']), $episode, $this->isSeries($videoPath));
-                $vtt = SubtitleConverter::toVtt($content, $extension);
+                [$vtt, $cues] = SubtitleConverter::stripPromoCues(SubtitleConverter::toVtt($content, $extension));
+
+                if ($cues === 0) {
+                    continue;
+                }
             } catch (RuntimeException|InvalidArgumentException) {
                 continue; // wrong episode in the pack, broken archive, not a subtitle: try the next one
             }

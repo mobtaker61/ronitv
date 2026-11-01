@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\SafePath;
+use App\Support\SubtitleConverter;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -129,14 +130,21 @@ class MediaProcessor
                 continue;
             }
 
-            // Several tracks in one language (full / forced / SDH): keep the one with the most text.
-            if (! isset($best[$lang]) || strlen($content) > strlen($best[$lang])) {
-                $best[$lang] = $content;
+            [$content, $cues] = SubtitleConverter::stripPromoCues($content);
+
+            // Several tracks in one language (full / forced / SDH): keep the one with the most dialogue.
+            if (! isset($best[$lang]) || $cues > $best[$lang][1]) {
+                $best[$lang] = [$content, $cues];
             }
         }
 
         $written = [];
-        foreach ($best as $lang => $content) {
+        foreach ($best as $lang => [$content, $cues]) {
+            // Forced / ad-only tracks (a handful of cues) are not subtitles; the online lookup should fill the gap instead.
+            if ($cues < config('media.min_subtitle_cues')) {
+                continue;
+            }
+
             $target = ($dir !== '' ? $dir.'/' : '').$base.'.'.$lang;
 
             if ($videos->exists($target.'.vtt') || $videos->exists($target.'.srt')) {
@@ -187,7 +195,10 @@ class MediaProcessor
                 '-sn', '-movflags', '+faststart', '-f', 'mp4', $partial,
             ]);
 
-            $this->assertSameDuration($probe['duration'], $this->ffmpeg->probe($partial)['duration']);
+            $output = $this->ffmpeg->probe($partial);
+            $this->assertSameDuration($probe['duration'], $output['duration']);
+            $this->assertStreams($output, 1);
+            $this->ffmpeg->assertReadable($partial);
             rename($partial, $final);
         } finally {
             @unlink($partial);
@@ -251,6 +262,10 @@ class MediaProcessor
 
             // Variant 0 is the video rendition: its duration must match the source.
             $this->assertSameDuration($probe['duration'], $this->ffmpeg->probe($work.DIRECTORY_SEPARATOR.'p0.m3u8')['duration']);
+
+            // The master playlist must expose the video and every audio track, and read through without a single warning.
+            $this->assertStreams($this->ffmpeg->probe($work.DIRECTORY_SEPARATOR.'master.m3u8'), count($audioTracks));
+            $this->ffmpeg->assertReadable('master.m3u8', $work);
 
             $videos->put($playlist, $this->publicMaster($hls->get($key.'/master.m3u8'), $key, $labels));
         } catch (\Throwable $e) {
@@ -317,6 +332,16 @@ class MediaProcessor
         }
 
         return ["-c:a:{$outputIndex}", 'aac', "-b:a:{$outputIndex}", '128k', "-ac:a:{$outputIndex}", '2'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $output  a probe() result
+     */
+    private function assertStreams(array $output, int $expectedAudio): void
+    {
+        if ($output['video'] === null || count($output['audio']) !== $expectedAudio) {
+            throw new RuntimeException(sprintf('Output has %d audio track(s), expected %d.', count($output['audio']), $expectedAudio));
+        }
     }
 
     private function assertSameDuration(float $expected, float $actual): void

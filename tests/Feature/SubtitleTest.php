@@ -153,3 +153,29 @@ it('embeds playable data in the folder page, safely, and flags the admin', funct
         ->and($data['seasons'][0]['videos'][0]['subtitles'][0]['lang'])->toBe('en')
         ->and($data['admin'])->toBeFalse();
 });
+
+it('strips promo cues and counts the dialogue that remains', function () {
+    $vtt = 'WEBVTT
+
+00:00.000 --> 00:10.000
+دانلود کنید
+.::WWW.KING-MOVIE.NET::.
+
+00:20.000 --> 00:22.000
+سلام
+
+00:30.000 --> 00:32.000
+https://example.com/x
+
+00:40.000 --> 00:42.000
+خداحافظ
+';
+
+    [$clean, $cues] = SubtitleConverter::stripPromoCues($vtt);
+
+    expect($cues)->toBe(2)
+        ->and($clean)->toStartWith('WEBVTT
+
+')->toContain('سلام')->toContain('خداحافظ')
+        ->not->toContain('KING-MOVIE')->not->toContain('example.com');
+});

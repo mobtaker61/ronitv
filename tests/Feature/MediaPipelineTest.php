@@ -57,6 +57,7 @@ function makeMkv(string $relative, array $audio, array $subs = []): void
 }
 
 beforeEach(function () {
+    config(['media.min_subtitle_cues' => 1]);
     Storage::fake('videos');
     Storage::fake('hls');
 });
@@ -150,4 +151,12 @@ it('does not overwrite an existing subtitle and refuses missing files', function
 
     expect(fn () => app(MediaProcessor::class)->process('Show/missing.mkv'))->toThrow(RuntimeException::class);
     expect(fn () => app(MediaProcessor::class)->process('../etc/passwd'))->toThrow(InvalidArgumentException::class);
+})->skip(fn () => ! ffmpegAvailable(), 'ffmpeg is not installed');
+
+it('ignores forced or ad-only subtitle tracks and strips promo cues from real ones', function () {
+    config(['media.min_subtitle_cues' => 3]);
+    makeMkv('Show/e4.mkv', ['per'], ['per' => 'www.king-movie.net']);
+
+    expect(app(MediaProcessor::class)->process('Show/e4.mkv')['subtitles'])->toBe([]);
+    Storage::disk('videos')->assertMissing('Show/e4.fa.vtt');
 })->skip(fn () => ! ffmpegAvailable(), 'ffmpeg is not installed');

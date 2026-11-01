@@ -92,6 +92,26 @@ class Ffmpeg
     }
 
     /**
+     * Read every packet of a file (no decoding, no output) and fail on any warning or error:
+     * the cheap way to prove a freshly written file is complete before its source may be deleted.
+     */
+    public function assertReadable(string $file, ?string $cwd = null): void
+    {
+        $command = [config('media.ffmpeg'), '-hide_banner', '-nostdin', '-v', 'warning', '-i', $file, '-map', '0', '-c', 'copy', '-f', 'null', '-'];
+
+        $process = Process::timeout(config('media.timeout'));
+        if ($cwd !== null) {
+            $process = $process->path($cwd);
+        }
+
+        $result = $process->run($command);
+
+        if ($result->failed() || trim($result->errorOutput()) !== '') {
+            throw new RuntimeException('Integrity check failed: '.substr(trim($result->errorOutput()), -400));
+        }
+    }
+
+    /**
      * Two-letter code for an ISO 639 tag, or null for unknown/undetermined.
      */
     public function normaliseLanguage(?string $tag): ?string

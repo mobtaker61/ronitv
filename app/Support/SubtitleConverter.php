@@ -76,4 +76,49 @@ class SubtitleConverter
 
         return mb_convert_encoding($raw, 'UTF-8', 'Windows-1252');
     }
+
+    /**
+     * Drop cues that only advertise the release site ("WWW.SOMETHING.NET") and count the dialogue cues that remain.
+     *
+     * @return array{0: string, 1: int} cleaned WebVTT and the number of cues in it
+     */
+    public static function stripPromoCues(string $vtt): array
+    {
+        $blocks = preg_split('/
+{2,}/', trim(str_replace(['
+', ''], '
+', $vtt)));
+        array_shift($blocks); // the WEBVTT header
+
+        $kept = [];
+        $cues = 0;
+
+        foreach ($blocks as $block) {
+            if (! str_contains($block, '-->')) {
+                $kept[] = $block; // NOTE / STYLE blocks
+
+                continue;
+            }
+
+            $lines = explode('
+', $block);
+            $timing = array_search(true, array_map(fn ($l) => str_contains($l, '-->'), $lines), true);
+            $text = implode('
+', array_slice($lines, $timing + 1));
+
+            if (preg_match('/(www\.|https?:\/\/|[a-z0-9-]+\.(?:com|net|org|biz|info|site|ir|co|tv|me))/i', $text)) {
+                continue;
+            }
+
+            $kept[] = $block;
+            $cues++;
+        }
+
+        return ['WEBVTT
+
+'.implode('
+
+', $kept).'
+', $cues];
+    }
 }
