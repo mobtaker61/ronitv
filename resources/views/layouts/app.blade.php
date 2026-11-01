@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', env('APP_NAME'))</title>
+    <title>@yield('title', config('app.name'))</title>
 
     <!-- CSS Files -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.rtl.min.css" integrity="sha384-Xbg45MqvDIk1e563NLpGEulpX6AvL404DP+/iCgW9eFa2BqztiwTexswJo2jLMue" crossorigin="anonymous">
@@ -20,7 +20,7 @@
             <div class="container">
                 <!-- Logo -->
                 <a class="navbar-brand" href="/">
-                    <i class="fas fa-play-circle me-2"></i>{{ env('APP_NAME') }}
+                    <i class="fas fa-play-circle me-2"></i>{{ config('app.name') }}
                 </a>
 
                 <!-- Navigation Links -->
@@ -75,7 +75,7 @@
             <div class="row d-none">
                 <div class="col-md-4">
                     <h5 class="footer-title">
-                        <i class="fas fa-play-circle me-2"></i>{{ env('APP_NAME') }}
+                        <i class="fas fa-play-circle me-2"></i>{{ config('app.name') }}
                     </h5>
                     <p class="footer-description">
                         پلتفرم مدیریت ویدیو با طراحی مدرن و کاربرپسند
@@ -104,7 +104,7 @@
                 <div class="row align-items-center">
                     <div class="col-md-6">
                         <p class="copyright">
-                            © {{ date('Y') }} {{ env('APP_NAME') }}. تمامی حقوق محفوظ است.
+                            © {{ date('Y') }} {{ config('app.name') }}. تمامی حقوق محفوظ است.
                         </p>
                     </div>
                     <div class="col-md-6 text-end">

@@ -2,105 +2,106 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\File;
 use App\Services\TmdbService;
+use App\Support\SafePath;
+use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Support\Facades\Storage;
+use InvalidArgumentException;
 
 class VideoController extends Controller
 {
+    public const VIDEO_EXTENSIONS = ['mp4', 'avi', 'mkv', 'mov', 'wmv'];
+
+    public function __construct(protected TmdbService $tmdb) {}
+
     public function index()
     {
         $disk = Storage::disk('videos');
-        $directories = $disk->directories();
 
         $films = [];
         $series = [];
-        $tmdb = new \App\Services\TmdbService();
         $filmPosters = [];
         $seriesPosters = [];
         $seriesSeasonsCount = [];
-        foreach ($directories as $dir) {
+
+        foreach ($disk->directories() as $dir) {
             $subdirs = $disk->directories($dir);
             $folderName = basename($dir);
+
             if (count($subdirs) > 0) {
                 $series[] = $dir;
-                // پوستر سریال از TMDb
-                $tmdbInfo = $tmdb->search($folderName, 'tv');
-                $seriesPosters[$dir] = $tmdbInfo['poster_path'] ?? null;
-                // تعداد فصل‌ها
+                $seriesPosters[$dir] = $this->tmdb->search($folderName, 'tv')['poster_path'] ?? null;
                 $seriesSeasonsCount[$dir] = count($subdirs);
-            } else {
-                $seriesFiles = $disk->files($dir);
-                $hasVideo = false;
-                foreach ($seriesFiles as $file) {
-                    $extension = pathinfo($file, PATHINFO_EXTENSION);
-                    if (in_array(strtolower($extension), ['mp4', 'avi', 'mkv', 'mov', 'wmv'])) {
-                        $hasVideo = true;
-                        break;
-                    }
-                }
-                if ($hasVideo) {
-                    $films[] = $dir;
-                    // پوستر فیلم از TMDb
-                    $tmdbInfo = $tmdb->search($folderName, 'movie');
-                    $filmPosters[$dir] = $tmdbInfo['poster_path'] ?? null;
-                }
+            } elseif ($this->videoFiles($disk, $dir) !== []) {
+                $films[] = $dir;
+                $filmPosters[$dir] = $this->tmdb->search($folderName, 'movie')['poster_path'] ?? null;
             }
         }
 
         return view('index', compact('films', 'series', 'filmPosters', 'seriesPosters', 'seriesSeasonsCount'));
     }
 
-    public function folder($path = null)
+    public function folder(?string $path = null)
     {
         $disk = Storage::disk('videos');
-        $currentPath = $path ?: '';
 
-        // دریافت زیرپوشه‌ها
-        $subdirs = [];
-        if ($currentPath) {
-            $subdirs = $disk->directories($currentPath);
+        try {
+            $currentPath = SafePath::clean($path);
+        } catch (InvalidArgumentException) {
+            abort(404);
         }
 
-        // دریافت فایل‌ها
-        $files = [];
-        if ($currentPath) {
-            $files = $disk->files($currentPath);
+        if ($currentPath !== '' && ! $disk->directoryExists($currentPath)) {
+            abort(404);
         }
 
-        // فیلتر کردن فایل‌های ویدیو
-        $videoFiles = array_filter($files, function($file) {
-            $extension = pathinfo($file, PATHINFO_EXTENSION);
-            return in_array(strtolower($extension), ['mp4', 'avi', 'mkv', 'mov', 'wmv']);
-        });
+        $subdirs = $currentPath ? $disk->directories($currentPath) : [];
+        $videoFiles = $currentPath ? $this->videoFiles($disk, $currentPath) : [];
 
         // اگر سریال است (دارای زیرپوشه)
         $seasonVideos = [];
-        if (count($subdirs) > 0) {
-            foreach ($subdirs as $seasonDir) {
-                $seasonName = basename($seasonDir);
-                $seasonFiles = $disk->files($seasonDir);
-                $seasonVideos[$seasonName] = array_filter($seasonFiles, function($file) {
-                    $extension = pathinfo($file, PATHINFO_EXTENSION);
-                    return in_array(strtolower($extension), ['mp4', 'avi', 'mkv', 'mov', 'wmv']);
-                });
-            }
+        foreach ($subdirs as $seasonDir) {
+            $seasonVideos[basename($seasonDir)] = $this->videoFiles($disk, $seasonDir);
         }
 
-        // --- دریافت اطلاعات TMDb فقط برای پوشه اصلی سریال ---
-        $tmdb = new TmdbService();
+        // اطلاعات TMDb فقط برای پوشه اصلی سریال
         $tmdbInfo = null;
         $tmdbType = count($subdirs) > 0 ? 'tv' : 'movie';
-        $folderName = $currentPath ? basename($currentPath) : null;
-        // فقط اگر فصل نیست (یعنی اگر مسیر فعلی خودش فصل نباشد)
-        if ($folderName && count($subdirs) > 0) {
-            $tmdbInfo = $tmdb->search($folderName, $tmdbType);
-            if ($tmdbInfo && isset($tmdbInfo['id'])) {
-                $tmdbInfo = $tmdb->details($tmdbInfo['id'], $tmdbType);
-            }
+        if ($currentPath && count($subdirs) > 0) {
+            $found = $this->tmdb->search(basename($currentPath), $tmdbType);
+            $tmdbInfo = isset($found['id']) ? $this->tmdb->details($found['id'], $tmdbType) : $found;
         }
 
         return view('folder', compact('subdirs', 'videoFiles', 'currentPath', 'tmdbInfo', 'tmdbType', 'seasonVideos'));
+    }
+
+    /**
+     * JSON list of the video files in one season folder (used by the season tabs).
+     */
+    public function seasonVideos(string $series, string $season)
+    {
+        try {
+            $seasonPath = SafePath::clean($series.'/'.$season);
+        } catch (InvalidArgumentException) {
+            abort(404);
+        }
+
+        $result = array_map(fn ($file) => [
+            'name' => basename($file),
+            'url' => asset('storage/videos/'.$seasonPath.'/'.basename($file)),
+        ], $this->videoFiles(Storage::disk('videos'), $seasonPath));
+
+        return response()->json(array_values($result));
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function videoFiles(Filesystem $disk, string $dir): array
+    {
+        return array_values(array_filter(
+            $disk->files($dir),
+            fn ($file) => in_array(strtolower(pathinfo($file, PATHINFO_EXTENSION)), self::VIDEO_EXTENSIONS, true),
+        ));
     }
 }

@@ -10,6 +10,14 @@
     --netflix-light-gray: #333;
     --netflix-gradient: linear-gradient(135deg, #141414 0%, #1a1a1a 100%);
     --persian-font: 'Vazirmatn', 'Vazir', 'Tahoma', sans-serif;
+
+    /* Aliases used by upload.blade.php / collection.blade.php */
+    --light-card: #1a1a1a;
+    --light-text: #fff;
+    --light-text-secondary: #999;
+    --light-border: rgba(255,255,255,0.15);
+    --light-shadow: rgba(0,0,0,0.4);
+    --light-primary: var(--netflix-red);
 }
 
 body {
@@ -504,6 +512,11 @@ body {
 
 /* Light Theme Variables */
 [data-theme="light"] {
+    --light-card: #fff;
+    --light-text: #212529;
+    --light-text-secondary: #6c757d;
+    --light-border: #dee2e6;
+    --light-shadow: rgba(0,0,0,0.08);
     --netflix-red: #007bff;
     --netflix-black: #fff;
     --netflix-dark: #f8f9fa;

@@ -42,6 +42,18 @@ php artisan storage:link
 php artisan serve
 ```
 
+## 🔐 دسترسی مدیریت
+
+مسیرهای `/upload`، `/create-folder` و `/download-url` با HTTP Basic محافظت می‌شوند.
+در `.env` مقادیر `ADMIN_USER` و `ADMIN_PASSWORD_HASH` را تنظیم کنید (بدون آن‌ها این مسیرها خطای 503 می‌دهند):
+
+```bash
+php artisan tinker --execute="echo Hash::make('your-password');"
+```
+
+هش را داخل کوتیشن تکی در `.env` قرار دهید. سقف حجم با `MAX_UPLOAD_KB` (به کیلوبایت) تنظیم می‌شود و باید
+از `upload_max_filesize` / `post_max_size` در PHP و `client_max_body_size` در nginx بیشتر نباشد.
+
 ## 🎯 مسیرها
 
 - `/` - صفحه اصلی (لیست پوشه‌های سطح اول)
@@ -86,11 +98,10 @@ php artisan serve
 - `resources/views/upload.blade.php` - صفحه آپلود
 - `routes/web.php` - مسیرها
 - `config/filesystems.php` - تنظیمات فایل‌سیستم
-- `public/css/netflix-style.css` - استایل‌های Netflix
-- `public/css/rtl-fixes.css` - بهبودهای RTL
-- `public/css/persian-fonts.css` - فونت‌های فارسی
-- `public/css/theme-switcher.css` - استایل‌های Theme Switcher
-- `public/css/layout.css` - استایل‌های Layout
+- `public/css/app.css` - تمام استایل‌ها (Netflix، RTL، Layout، Theme Switcher)
+- `public/css/persian-fonts.css` - فونت‌های فارسی (در حال حاضر در layout لود نمی‌شود)
+- `app/Http/Middleware/AdminBasicAuth.php` - احراز هویت مسیرهای مدیریت
+- `app/Support/SafePath.php`, `app/Support/UrlGuard.php` - اعتبارسنجی مسیر و آدرس
 - `public/js/theme-switcher.js` - JavaScript Theme Switcher
 - `public/js/app.js` - JavaScript اصلی
 

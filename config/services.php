@@ -38,6 +38,12 @@ return [
     'bunny' => [
         'stream_library_id' => env('BUNNY_STREAM_LIBRARY_ID'),
         'stream_access_key' => env('BUNNY_STREAM_ACCESS_KEY'),
+        'shahrokh_collection_id' => env('BUNNY_SHAHROKH_COLLECTION_ID', 'shahrokh'),
+    ],
+
+    'tmdb' => [
+        'key' => env('TMDB_API_KEY'),
+        'cache_ttl' => (int) env('TMDB_CACHE_TTL', 604800), // 7 days
     ],
 
 ];

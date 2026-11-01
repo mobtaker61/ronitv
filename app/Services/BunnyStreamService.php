@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Log;
 class BunnyStreamService
 {
     protected string $libraryId;
+
     protected string $accessKey;
+
     protected string $baseUrl = 'https://video.bunnycdn.com';
 
     public function __construct()
@@ -19,12 +21,6 @@ class BunnyStreamService
 
     /**
      * دریافت لیست ویدیوهای یک collection
-     *
-     * @param string $collectionId
-     * @param int $page
-     * @param int $itemsPerPage
-     * @param string $orderBy
-     * @return array|null
      */
     public function getCollectionVideos(string $collectionId, int $page = 1, int $itemsPerPage = 100, string $orderBy = 'date'): ?array
     {
@@ -45,10 +41,12 @@ class BunnyStreamService
                     'body' => $response->body(),
                     'collection_id' => $collectionId,
                 ]);
+
                 return null;
             }
 
             $data = $response->json();
+
             return $data['items'] ?? [];
 
         } catch (\Exception $e) {
@@ -56,19 +54,13 @@ class BunnyStreamService
                 'message' => $e->getMessage(),
                 'collection_id' => $collectionId,
             ]);
+
             return null;
         }
     }
 
     /**
      * ساخت embed URL برای ویدیو
-     *
-     * @param string $videoGuid
-     * @param bool $autoplay
-     * @param bool $loop
-     * @param bool $muted
-     * @param bool $preload
-     * @return string
      */
     public function getEmbedUrl(string $videoGuid, bool $autoplay = false, bool $loop = false, bool $muted = false, bool $preload = true): string
     {
@@ -84,9 +76,6 @@ class BunnyStreamService
 
     /**
      * ساخت Direct Play URL برای ویدیو
-     *
-     * @param string $videoGuid
-     * @return string
      */
     public function getDirectPlayUrl(string $videoGuid): string
     {
@@ -96,14 +85,12 @@ class BunnyStreamService
 
     /**
      * تبدیل ویدیوهای خام به ساختار قابل استفاده
-     *
-     * @param array $videos
-     * @return array
      */
     public function formatVideos(array $videos): array
     {
         return array_map(function ($video) {
             $guid = $video['guid'] ?? '';
+
             return [
                 'title' => $video['title'] ?? 'Untitled',
                 'guid' => $guid,
@@ -116,4 +103,3 @@ class BunnyStreamService
         }, $videos);
     }
 }
-

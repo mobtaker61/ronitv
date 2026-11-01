@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'سالن فروش بلیط - ' . env('APP_NAME'))
+@section('title', 'سالن فروش بلیط - ' . config('app.name'))
 
 @push('styles')
 <style>
@@ -127,21 +127,3 @@
         @endif
     </div>
 @endsection
-
-@push('scripts')
-<script>
-    // جستجو
-    document.getElementById('searchInput').addEventListener('input', function(e) {
-        const searchTerm = e.target.value.toLowerCase();
-        const cards = document.querySelectorAll('.video-card');
-        cards.forEach(card => {
-            const folderName = card.querySelector('.folder-name').textContent.toLowerCase();
-            if (folderName.includes(searchTerm)) {
-                card.style.display = 'block';
-            } else {
-                card.style.display = 'none';
-            }
-        });
-    });
-</script>
-@endpush

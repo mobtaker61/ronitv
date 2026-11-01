@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Services\BunnyStreamService;
-use Illuminate\Http\Request;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
 
 class BunnyVodController extends Controller
 {
@@ -17,8 +19,7 @@ class BunnyVodController extends Controller
     /**
      * نمایش collection ویدیوها
      *
-     * @param string $collectionId
-     * @return \Illuminate\Contracts\View\View|\Illuminate\Http\Response
+     * @return View|Response
      */
     public function showCollection(string $collectionId)
     {
@@ -59,15 +60,14 @@ class BunnyVodController extends Controller
     /**
      * نمایش صفحه shahrokh (redirect به collection مشخص)
      *
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function showShahrokh()
     {
         // می‌توانید collectionId را از env یا config بگیرید
         // یا مستقیماً به یک collection مشخص redirect کنید
-        $collectionId = env('BUNNY_SHAHROKH_COLLECTION_ID', 'shahrokh');
-        
+        $collectionId = config('services.bunny.shahrokh_collection_id');
+
         return redirect()->route('vod.collection.show', ['collectionId' => $collectionId]);
     }
 }
-

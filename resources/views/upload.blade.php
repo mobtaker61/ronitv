@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'آپلود ویدیو - ' . env('APP_NAME'))
+@section('title', 'آپلود ویدیو - ' . config('app.name'))
 
 @push('styles')
 <style>

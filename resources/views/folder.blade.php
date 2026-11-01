@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'محتویات پوشه - ' . ($currentPath ?: 'ریشه') . ' - ' . env('APP_NAME'))
+@section('title', 'محتویات پوشه - ' . ($currentPath ?: 'ریشه') . ' - ' . config('app.name'))
 
 @push('styles')
 <style>
