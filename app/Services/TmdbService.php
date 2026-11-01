@@ -34,7 +34,7 @@ class TmdbService
     public function details(int|string $id, string $type = 'movie'): ?array
     {
         return $this->cached("details:{$type}:{$id}", fn () => $this->get("{$type}/{$id}", [
-            'append_to_response' => 'credits',
+            'append_to_response' => 'credits,external_ids',
         ]));
     }
 

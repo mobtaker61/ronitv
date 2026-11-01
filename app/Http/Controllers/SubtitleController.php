@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\SubtitleTitleNotFound;
+use App\Services\SubSourceClient;
+use App\Services\SubtitleFinder;
 use App\Services\VideoLibrary;
 use App\Support\SafePath;
 use App\Support\SubtitleConverter;
@@ -10,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
+use RuntimeException;
 
 class SubtitleController extends Controller
 {
@@ -107,5 +111,68 @@ class SubtitleController extends Controller
         $disk->delete($path);
 
         return back()->with('success', 'زیرنویس حذف شد.');
+    }
+
+    /**
+     * Ranked online candidates for a video, so the admin can choose one.
+     */
+    public function online(Request $request, SubtitleFinder $finder, SubSourceClient $api)
+    {
+        $video = $this->videoFromRequest($request);
+
+        if (! $api->isConfigured()) {
+            return response()->json(['message' => 'کلید SubSource تنظیم نشده است (SUBSOURCE_API_KEY).'], 503);
+        }
+
+        if ($finder->hasLocal($video)) {
+            return response()->json(['local' => true, 'candidates' => []]);
+        }
+
+        try {
+            return response()->json(['local' => false, 'candidates' => $finder->candidates($video)]);
+        } catch (SubtitleTitleNotFound) {
+            return response()->json(['local' => false, 'candidates' => [], 'message' => 'این عنوان در SubSource پیدا نشد.']);
+        } catch (RuntimeException $e) {
+            report($e);
+
+            return response()->json(['message' => 'ارتباط با SubSource ناموفق بود.'], 502);
+        }
+    }
+
+    /**
+     * Download the chosen (or the best) online subtitle once and keep it next to the video.
+     */
+    public function fetchOnline(Request $request, SubtitleFinder $finder, SubSourceClient $api)
+    {
+        $request->validate(['subtitle_id' => ['nullable', 'integer', 'min:1']]);
+        $video = $this->videoFromRequest($request);
+
+        if (! $api->isConfigured()) {
+            return response()->json(['message' => 'کلید SubSource تنظیم نشده است (SUBSOURCE_API_KEY).'], 503);
+        }
+
+        try {
+            return response()->json($finder->fetch($video, $request->integer('subtitle_id') ?: null));
+        } catch (RuntimeException $e) {
+            report($e);
+
+            return response()->json(['message' => 'ارتباط با SubSource ناموفق بود.'], 502);
+        }
+    }
+
+    private function videoFromRequest(Request $request): string
+    {
+        $request->validate(['video' => ['required', 'string']]);
+
+        try {
+            $video = SafePath::clean($request->input('video'));
+        } catch (InvalidArgumentException) {
+            abort(404);
+        }
+
+        $extension = strtolower(pathinfo($video, PATHINFO_EXTENSION));
+        abort_unless(in_array($extension, VideoLibrary::VIDEO_EXTENSIONS, true) && Storage::disk('videos')->exists($video), 404);
+
+        return $video;
     }
 }

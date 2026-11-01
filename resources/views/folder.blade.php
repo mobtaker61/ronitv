@@ -209,6 +209,17 @@
                                     </div>
                                     <button type="submit" class="btn btn-primary"><i class="fas fa-upload me-1"></i>افزودن زیرنویس</button>
                                 </form>
+
+                                <hr>
+                                <div id="onlineSubtitles" data-online-url="{{ route('subtitle.online') }}" data-fetch-url="{{ route('subtitle.fetch') }}">
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                        <strong>زیرنویس آنلاین (SubSource)</strong>
+                                        <button type="button" class="btn btn-sm btn-outline-info" id="onlineSearch"><i class="fas fa-search me-1"></i>جستجو</button>
+                                        <button type="button" class="btn btn-sm btn-success" id="onlineAuto"><i class="fas fa-magic me-1"></i>دریافت خودکار بهترین</button>
+                                    </div>
+                                    <div id="onlineStatus" class="small text-muted mb-2"></div>
+                                    <div id="onlineList" class="list-group"></div>
+                                </div>
                             </div>
                         </div>
                     </div>

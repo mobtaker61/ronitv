@@ -41,6 +41,15 @@ return [
         'shahrokh_collection_id' => env('BUNNY_SHAHROKH_COLLECTION_ID', 'shahrokh'),
     ],
 
+    // Online Persian subtitles (https://subsource.net/api-docs). Free keys: 60/min, 1,800/h, 7,200/day.
+    'subsource' => [
+        'key' => env('SUBSOURCE_API_KEY'),
+        'base_url' => env('SUBSOURCE_BASE_URL', 'https://api.subsource.net/api/v1'),
+        'language' => 'farsi_persian',
+        // Titles with no match are not looked up again for this many days.
+        'miss_days' => (int) env('SUBSOURCE_MISS_DAYS', 7),
+    ],
+
     'tmdb' => [
         'key' => env('TMDB_API_KEY'),
         'cache_ttl' => (int) env('TMDB_CACHE_TTL', 604800), // 7 days

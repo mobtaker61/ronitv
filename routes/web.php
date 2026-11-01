@@ -21,6 +21,8 @@ Route::middleware(['admin', 'throttle:60,1'])->group(function () {
     Route::post('/download-url', [DownloadController::class, 'downloadFromUrl'])->name('download.url');
     Route::post('/subtitles', [SubtitleController::class, 'store'])->name('subtitle.store');
     Route::delete('/subtitles', [SubtitleController::class, 'destroy'])->name('subtitle.destroy');
+    Route::get('/subtitles/online', [SubtitleController::class, 'online'])->name('subtitle.online');
+    Route::post('/subtitles/online', [SubtitleController::class, 'fetchOnline'])->name('subtitle.fetch');
     Route::get('/download-status', [DownloadController::class, 'status'])->name('download.status');
 });
 

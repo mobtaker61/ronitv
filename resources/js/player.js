@@ -231,8 +231,87 @@ function init(data) {
     }
     selectSeason(0);
 
+    // ---------- admin: online subtitles (SubSource) ----------
+    let modalVideo = null;
+    const online = document.getElementById('onlineSubtitles');
+
+    async function onlineCall(method, url, body) {
+        const response = await fetch(url, {
+            method,
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                ...(body ? { 'Content-Type': 'application/json' } : {}),
+            },
+            body: body ? JSON.stringify(body) : undefined,
+        });
+        const json = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(json.message || `خطا (${response.status})`);
+        return json;
+    }
+
+    function setOnlineStatus(text, isError = false) {
+        const box = document.getElementById('onlineStatus');
+        box.textContent = text;
+        box.className = `small mb-2 ${isError ? 'text-danger' : 'text-muted'}`;
+    }
+
+    async function fetchSubtitle(subtitleId) {
+        setOnlineStatus('در حال دریافت...');
+        try {
+            const result = await onlineCall('POST', online.dataset.fetchUrl, { video: modalVideo.path, subtitle_id: subtitleId });
+            if (result.status === 'stored' || result.status === 'exists') {
+                setOnlineStatus(result.status === 'stored' ? 'زیرنویس ذخیره شد؛ بارگذاری مجدد...' : 'زیرنویس از قبل وجود دارد.');
+                setTimeout(() => window.location.reload(), 900);
+            } else {
+                setOnlineStatus('زیرنویس مناسبی پیدا نشد. این نتیجه ذخیره شد و تا چند روز دوباره جستجو نمی‌شود.', true);
+            }
+        } catch (error) {
+            setOnlineStatus(error.message, true);
+        }
+    }
+
+    function renderCandidates(candidates) {
+        document.getElementById('onlineList').replaceChildren(...candidates.slice(0, 12).map((c) => {
+            const row = el('div', 'list-group-item d-flex justify-content-between align-items-center gap-2');
+            const info = el('div', 'small');
+            info.append(el('div', 'fw-semibold', c.release || '—'));
+            const meta = [`👍 ${c.good}/${c.total}`, `${c.downloads} دانلود`, c.files > 1 ? `${c.files} فایل` : null, c.hearing_impaired ? 'ناشنوایان' : null].filter(Boolean);
+            info.append(el('div', 'text-muted', meta.join(' · ')));
+            const pick = iconButton('button', 'btn-outline-success', 'download', 'دریافت این زیرنویس');
+            pick.type = 'button';
+            pick.addEventListener('click', () => fetchSubtitle(c.id));
+            row.append(info, pick);
+            return row;
+        }));
+    }
+
+    if (online) {
+        document.getElementById('onlineSearch').addEventListener('click', async () => {
+            setOnlineStatus('در حال جستجو...');
+            document.getElementById('onlineList').replaceChildren();
+            try {
+                const result = await onlineCall('GET', `${online.dataset.onlineUrl}?video=${encodeURIComponent(modalVideo.path)}`);
+                if (result.local) return setOnlineStatus('برای این ویدیو از قبل زیرنویس فارسی هست.');
+                if (!result.candidates.length) return setOnlineStatus(result.message || 'نتیجه‌ای پیدا نشد.', true);
+                setOnlineStatus(`${result.candidates.length} نتیجه (بهترین‌ها بالا). یکی را انتخاب کنید:`);
+                renderCandidates(result.candidates);
+            } catch (error) {
+                setOnlineStatus(error.message, true);
+            }
+        });
+        document.getElementById('onlineAuto').addEventListener('click', () => fetchSubtitle(null));
+    }
+
     // ---------- admin: subtitle modal ----------
     function openSubtitleModal(video) {
+        modalVideo = video;
+        if (online) {
+            setOnlineStatus('');
+            document.getElementById('onlineList').replaceChildren();
+        }
         const modalEl = document.getElementById('subtitleModal');
         modalEl.querySelector('#subtitleModalTitle').textContent = video.name;
         modalEl.querySelector('#subtitleVideo').value = video.path;
