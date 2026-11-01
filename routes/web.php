@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [VideoController::class, 'index']);
 Route::get('/folder/{path?}', [VideoController::class, 'folder'])->where('path', '.*');
 Route::get('/ajax/season-videos/{series}/{season}', [VideoController::class, 'seasonVideos']);
+Route::get('/download/{path}', [VideoController::class, 'download'])->where('path', '.*')->middleware('throttle:10,1')->name('video.download');
 Route::get('/subtitle/{path}', [SubtitleController::class, 'show'])->where('path', '.*')->name('subtitle.show');
 
 // مدیریت (آپلود، ساخت پوشه، دانلود از لینک) — فقط ادمین

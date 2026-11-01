@@ -60,6 +60,16 @@ return [
             'report' => false,
         ],
 
+        // HLS segments and variant playlists written by the media pipeline (served via /storage/hls)
+        'hls' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/hls'),
+            'url' => env('APP_URL').'/storage/hls',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         'videos' => [
             'driver' => 'local',
             'root' => storage_path('app/public/videos'),

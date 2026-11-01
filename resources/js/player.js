@@ -185,7 +185,7 @@ function init(data) {
 
             const icons = el('span', 'file-icons');
             const download = iconButton('a', 'btn-outline-success ms-2', 'download', 'دانلود');
-            download.href = video.url;
+            download.href = video.download || video.url;
             download.setAttribute('download', '');
             icons.append(download);
 

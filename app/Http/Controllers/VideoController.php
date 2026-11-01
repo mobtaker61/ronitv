@@ -3,16 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Http\Middleware\AdminBasicAuth;
+use App\Services\MediaProcessor;
 use App\Services\TmdbService;
 use App\Services\VideoLibrary;
 use App\Support\SafePath;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\Process\Process;
 
 class VideoController extends Controller
 {
-    public const VIDEO_EXTENSIONS = VideoLibrary::VIDEO_EXTENSIONS;
+    /** Formats accepted by the upload and download-from-link forms. */
+    public const VIDEO_EXTENSIONS = VideoLibrary::UPLOAD_EXTENSIONS;
 
     public function __construct(
         protected TmdbService $tmdb,
@@ -96,5 +100,56 @@ class VideoController extends Controller
         }
 
         return response()->json($this->library->videos(Storage::disk('videos'), $seasonPath));
+    }
+
+    /**
+     * Download a multi-audio (HLS) video as one MP4 with every audio track, muxed on the fly without re-encoding.
+     * Plain files are linked directly and never come through here.
+     */
+    public function download(string $path)
+    {
+        try {
+            $path = SafePath::clean($path);
+        } catch (InvalidArgumentException) {
+            abort(404);
+        }
+
+        $videos = Storage::disk('videos');
+        abort_unless(strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'm3u8' && $videos->exists($path), 404);
+
+        $dir = dirname($path) === '.' ? '' : dirname($path);
+        $base = pathinfo($path, PATHINFO_FILENAME);
+        $master = Storage::disk('hls')->path(MediaProcessor::hlsKey($dir, $base).'/master.m3u8');
+        abort_unless(is_file($master), 404);
+
+        $filename = $base.'.mp4';
+        $disposition = HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, $filename, preg_replace('/[^ -~]/', '_', $filename));
+
+        return response()->stream(function () use ($master) {
+            $process = new Process([
+                config('media.ffmpeg'), '-v', 'error', '-nostdin', '-i', $master,
+                '-map', '0:v:0', '-map', '0:a', '-c', 'copy',
+                '-f', 'mp4', '-movflags', 'frag_keyframe+empty_moov+default_base_moof', 'pipe:1',
+            ]);
+            $process->setTimeout(null);
+            $process->start();
+
+            foreach ($process as $type => $data) {
+                if ($type === Process::OUT) {
+                    echo $data;
+                    flush();
+                }
+
+                if (connection_aborted()) {
+                    $process->stop(1);
+                    break;
+                }
+            }
+        }, 200, [
+            'Content-Type' => 'video/mp4',
+            'Content-Disposition' => $disposition,
+            'X-Accel-Buffering' => 'no',
+            'Cache-Control' => 'no-store',
+        ]);
     }
 }

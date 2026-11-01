@@ -9,7 +9,11 @@ use Illuminate\Contracts\Filesystem\Filesystem;
  */
 class VideoLibrary
 {
-    public const VIDEO_EXTENSIONS = ['mp4', 'avi', 'mkv', 'mov', 'wmv'];
+    /** Formats an admin may upload or download from a link. */
+    public const UPLOAD_EXTENSIONS = ['mp4', 'avi', 'mkv', 'mov', 'wmv'];
+
+    /** Everything the player can list: the above plus HLS playlists made by the media pipeline. */
+    public const VIDEO_EXTENSIONS = [...self::UPLOAD_EXTENSIONS, 'm3u8'];
 
     public const SUBTITLE_EXTENSIONS = ['vtt', 'srt'];
 
@@ -27,7 +31,7 @@ class VideoLibrary
     /**
      * Video files of one directory, naturally sorted, each with its subtitles.
      *
-     * @return list<array{name: string, path: string, url: string, type: string, subtitles: list<array<string, mixed>>}>
+     * @return list<array{name: string, path: string, url: string, type: string, download: string, subtitles: list<array<string, mixed>>}>
      */
     public function videos(Filesystem $disk, string $dir): array
     {
@@ -35,14 +39,42 @@ class VideoLibrary
         natcasesort($files);
 
         $videos = array_filter($files, fn ($f) => in_array($this->extension($f), self::VIDEO_EXTENSIONS, true));
+        $videos = $this->withoutSupersededOriginals($videos);
 
         return array_values(array_map(fn ($file) => [
             'name' => basename($file),
             'path' => $file,
             'url' => $this->url($file),
             'type' => $this->mimeFor($file),
+            'download' => $this->extension($file) === 'm3u8' ? route('video.download', ['path' => $file]) : $this->url($file),
             'subtitles' => $this->subtitlesFor($file, $files),
         ], $videos));
+    }
+
+    /**
+     * When the media pipeline converted a video and kept the original, only the converted copy
+     * is listed: the HLS playlist wins over an MP4, and an MP4 wins over MKV/AVI/etc.
+     *
+     * @param  array<int|string, string>  $videos
+     * @return array<int|string, string>
+     */
+    private function withoutSupersededOriginals(array $videos): array
+    {
+        $rank = fn (string $file) => match ($this->extension($file)) {
+            'm3u8' => 3,
+            'mp4' => 2,
+            default => 1,
+        };
+
+        $best = [];
+        foreach ($videos as $file) {
+            $key = dirname($file).'/'.pathinfo($file, PATHINFO_FILENAME);
+            if (! isset($best[$key]) || $rank($file) > $rank($best[$key])) {
+                $best[$key] = $file;
+            }
+        }
+
+        return array_filter($videos, fn ($file) => in_array($file, $best, true));
     }
 
     public function hasVideo(Filesystem $disk, string $dir): bool
@@ -112,9 +144,10 @@ class VideoLibrary
 
     /**
      * Browsers sniff the container, so MKV/AVI are offered as mp4 and play where the codecs allow.
+     * HLS playlists (multi-audio videos made by the media pipeline) are played through Video.js' HLS engine.
      */
     private function mimeFor(string $file): string
     {
-        return 'video/mp4';
+        return $this->extension($file) === 'm3u8' ? 'application/x-mpegURL' : 'video/mp4';
     }
 }
