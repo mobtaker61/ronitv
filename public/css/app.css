@@ -660,3 +660,6 @@ body {
 
 #tmdbResults .list-group-item { background: transparent; color: inherit; }
 #tmdbResults .active-title { border-color: #198754; box-shadow: inset 0 0 0 1px #198754; }
+
+.admin-hint { color: rgba(255,255,255,.6); }
+[data-theme="light"] .admin-hint { color: #6c757d; }

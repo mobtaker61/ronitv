@@ -101,7 +101,7 @@
     <div class="row g-3">
         <div class="col-md-6">
             <div class="admin-card h-100">
-                <h6 class="mb-3"><i class="fas fa-list-check me-1"></i>صف پردازش</h6>
+                <h6 class="mb-3"><i class="fas fa-list-check me-1"></i><a href="{{ route('admin.queue') }}" class="text-decoration-none text-reset">صف پردازش</a> <a href="{{ route('admin.queue') }}" class="small ms-2">جزئیات و مدیریت</a></h6>
                 @if($queue['unavailable'])<div class="alert alert-warning py-1 small">دیتابیس در دسترس نیست؛ وضعیت صف نمایش داده نمی‌شود.</div>@endif
                 <div class="d-flex gap-3 mb-2 flex-wrap">
                     <div><span class="fs-5">{{ $queue['media'] }}</span> <small class="text-muted">تبدیل ویدیو</small></div>

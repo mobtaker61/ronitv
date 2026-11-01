@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminQueueController;
 use App\Http\Controllers\AdminSubtitleBatchController;
 use App\Http\Controllers\AdminTitleController;
 use App\Http\Controllers\BunnyVodController;
@@ -33,6 +34,11 @@ Route::middleware(['admin', 'throttle:120,1'])->group(function () {
     Route::post('/admin/titles/assign', [AdminTitleController::class, 'assign'])->name('admin.titles.assign');
     Route::post('/admin/titles/refresh', [AdminTitleController::class, 'refresh'])->name('admin.titles.refresh');
     Route::post('/admin/titles/reset', [AdminTitleController::class, 'reset'])->name('admin.titles.reset');
+    Route::get('/admin/queue', [AdminQueueController::class, 'index'])->name('admin.queue');
+    Route::post('/admin/queue/retry', [AdminQueueController::class, 'retry'])->name('admin.queue.retry');
+    Route::post('/admin/queue/forget', [AdminQueueController::class, 'forget'])->name('admin.queue.forget');
+    Route::post('/admin/queue/cancel', [AdminQueueController::class, 'cancel'])->name('admin.queue.cancel');
+    Route::post('/admin/queue/requeue', [AdminQueueController::class, 'requeue'])->name('admin.queue.requeue');
     Route::post('/admin/subtitles/batch', [AdminSubtitleBatchController::class, 'start'])->name('admin.subtitles.batch');
     Route::get('/admin/subtitles/batch', [AdminSubtitleBatchController::class, 'status'])->name('admin.subtitles.batch.status');
 
