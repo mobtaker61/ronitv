@@ -22,6 +22,14 @@
     @if(session('success'))<div class="alert alert-success py-2">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="alert alert-danger py-2">{{ session('error') }}</div>@endif
 
+    @if(! empty($stats['readOnlyFolders']))
+        <div class="alert alert-danger">
+            <strong>وب‌سرور در این پوشه‌ها اجازه‌ی نوشتن ندارد</strong> (تبدیل، زیرنویس و تغییر نام در آن‌ها شکست می‌خورد):
+            <span dir="ltr">{{ implode('، ', array_map(fn ($d) => $d === '' ? '/' : $d, $stats['readOnlyFolders'])) }}</span>
+            <div class="small mt-1">رفع: <code dir="ltr">sudo chgrp -R www-data storage/app/public/videos &amp;&amp; sudo find storage/app/public/videos -type d -exec chmod 2775 {} + &amp;&amp; sudo find storage/app/public/videos -type f -exec chmod 664 {} +</code></div>
+        </div>
+    @endif
+
     <div class="row g-3 mb-3">
         <div class="col-md-4">
             <div class="admin-card h-100">

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
+use League\Flysystem\FilesystemException;
 use RuntimeException;
 
 class SubtitleController extends Controller
@@ -85,9 +86,15 @@ class SubtitleController extends Controller
         $dir = dirname($video) === '.' ? '' : dirname($video);
         $target = ($dir !== '' ? $dir.'/' : '').pathinfo($video, PATHINFO_FILENAME).'.'.$request->input('lang').'.vtt';
 
-        // Drop an older .srt of the same language so the new .vtt is the one that shows.
-        $disk->delete(preg_replace('/\.vtt$/', '.srt', $target));
-        $disk->put($target, $vtt);
+        try {
+            // Drop an older .srt of the same language so the new .vtt is the one that shows.
+            $disk->delete(preg_replace('/\.vtt$/', '.srt', $target));
+            $disk->put($target, $vtt);
+        } catch (FilesystemException $e) {
+            report($e);
+
+            return back()->with('error', 'زیرنویس ذخیره نشد؛ وب‌سرور اجازه‌ی نوشتن در این پوشه را ندارد.');
+        }
 
         return back()->with('success', 'زیرنویس اضافه شد.');
     }
@@ -108,7 +115,13 @@ class SubtitleController extends Controller
             return back()->with('error', 'زیرنویس پیدا نشد.');
         }
 
-        $disk->delete($path);
+        try {
+            $disk->delete($path);
+        } catch (FilesystemException $e) {
+            report($e);
+
+            return back()->with('error', 'زیرنویس حذف نشد؛ وب‌سرور اجازه‌ی نوشتن در این پوشه را ندارد.');
+        }
 
         return back()->with('success', 'زیرنویس حذف شد.');
     }
@@ -153,6 +166,10 @@ class SubtitleController extends Controller
 
         try {
             return response()->json($finder->fetch($video, $request->integer('subtitle_id') ?: null));
+        } catch (FilesystemException $e) {
+            report($e);
+
+            return response()->json(['message' => 'زیرنویس ذخیره نشد؛ وب‌سرور اجازه‌ی نوشتن در این پوشه را ندارد.'], 500);
         } catch (RuntimeException $e) {
             report($e);
 

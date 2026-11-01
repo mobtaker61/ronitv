@@ -48,6 +48,7 @@ class MediaProcessor
         }
 
         $this->assertFreeSpace($source, $probe['size']);
+        $this->assertWritable(dirname($source), $relativePath);
 
         $subtitles = $this->extractSubtitles($probe, $source, $dir, $base);
         $multiAudio = count($probe['audio']) > 1;
@@ -92,6 +93,17 @@ class MediaProcessor
     public static function hlsKeyFromPlaylist(string $playlist): ?string
     {
         return preg_match('#/storage/hls/([0-9a-f]{16})/#', $playlist, $m) ? $m[1] : null;
+    }
+
+    /**
+     * The worker (www-data) must be able to write next to the video, otherwise a conversion would do all its work
+     * and then be unable to publish the result or remove the original. Say so before spending the time.
+     */
+    private function assertWritable(string $directory, string $relativePath): void
+    {
+        if (! is_writable($directory) || ! is_writable(Storage::disk('hls')->path(''))) {
+            throw new RuntimeException('The web server user cannot write to the folder of '.$relativePath.' (or to the hls folder). Fix the folder permissions (group www-data, mode 2775).');
+        }
     }
 
     private function assertFreeSpace(string $source, int $size): void

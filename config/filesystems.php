@@ -66,7 +66,9 @@ return [
             'root' => storage_path('app/public/hls'),
             'url' => env('APP_URL').'/storage/hls',
             'visibility' => 'public',
-            'throw' => false,
+            // A failed write/move/delete must raise, not return false: with 'throw' => false a folder the worker
+            // cannot write to made conversions and renames "succeed" without doing anything.
+            'throw' => true,
             'report' => false,
         ],
 
@@ -75,7 +77,7 @@ return [
             'root' => storage_path('app/public/videos'),
             'url' => env('APP_URL').'/storage/videos',
             'visibility' => 'public',
-            'throw' => false,
+            'throw' => true, // see the hls disk: failures must raise
             'report' => false,
         ],
 

@@ -8,6 +8,7 @@ use App\Services\SubtitleFinder;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
+use League\Flysystem\FilesystemException;
 use RuntimeException;
 
 /**
@@ -37,6 +38,11 @@ class FetchSubtitle implements ShouldQueue
             $result = $finder->fetch($this->videoPath);
         } catch (SubtitleTitleNotFound) {
             $batch->report($this->batchId, 'none');
+
+            return;
+        } catch (FilesystemException $e) {
+            report($e);
+            $batch->report($this->batchId, 'failed', 'نوشتن زیرنویس ممکن نشد (دسترسی پوشه‌ی '.dirname($this->videoPath).').');
 
             return;
         } catch (RuntimeException $e) {

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\UnableToWriteFile;
 
 uses(RefreshDatabase::class);
 
@@ -213,4 +214,19 @@ it('shows the batch card and progress on the dashboard', function () {
     app(SubtitleBatch::class)->start();
 
     asBatchAdmin()->get('/admin')->assertOk()->assertSee('0 از 1')->assertSee('در حال اجرا');
+});
+
+it('counts a subtitle that could not be written as a failure with the reason, not as stored', function () {
+    Queue::fake();
+    Storage::disk('videos')->put('Film/Film.mkv', 'x');
+    confirmed('Film', 7);
+    $batch = app(SubtitleBatch::class)->start();
+
+    $finder = Mockery::mock(SubtitleFinder::class);
+    $finder->shouldReceive('fetch')->andThrow(UnableToWriteFile::atLocation('Film/Film.fa.vtt', 'Permission denied'));
+
+    (new FetchSubtitle('Film/Film.mkv', $batch['id']))->handle($finder, app(SubtitleBatch::class));
+
+    expect(app(SubtitleBatch::class)->status())->toMatchArray(['done' => 1, 'stored' => 0, 'failed' => 1])
+        ->and(app(SubtitleBatch::class)->status()['error'])->toContain('Film');
 });

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\UnableToMoveFile;
 
 uses(RefreshDatabase::class);
 
@@ -251,4 +252,20 @@ it('still completes file operations when the lookup database is unavailable', fu
     asAdmin()->post('/admin/delete', ['path' => 'Show/Pilot.mkv'])->assertSessionHas('success');
 
     Storage::disk('videos')->assertMissing('Show/Pilot.mkv');
+});
+
+it('raises on failed file operations instead of silently returning false', function () {
+    expect(config('filesystems.disks.videos.throw'))->toBeTrue()
+        ->and(config('filesystems.disks.hls.throw'))->toBeTrue();
+});
+
+it('reports a rename that the filesystem refused instead of claiming success or crashing', function () {
+    Storage::disk('videos')->put('Show/e1.mkv', 'x');
+    $manager = Mockery::mock(LibraryManager::class);
+    $manager->shouldReceive('rename')->andThrow(UnableToMoveFile::fromLocationTo('Show/e1.mkv', 'Show/Pilot.mkv'));
+    app()->instance(LibraryManager::class, $manager);
+
+    asAdmin()->post('/admin/rename', ['path' => 'Show/e1.mkv', 'name' => 'Pilot'])
+        ->assertSessionHas('error', fn ($m) => str_contains($m, 'اجازه‌ی نوشتن'))
+        ->assertSessionMissing('success');
 });

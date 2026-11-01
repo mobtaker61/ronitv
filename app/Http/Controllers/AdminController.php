@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
+use League\Flysystem\FilesystemException;
 use RuntimeException;
 use Throwable;
 
@@ -84,6 +85,12 @@ class AdminController extends Controller
             $queue['unavailable'] = true; // the page is still useful without the queue figures
         }
 
+        // Folders the web server (and the queue worker) cannot write to: renames, subtitles and conversions fail there.
+        $stats['readOnlyFolders'] = array_slice(array_values(array_filter(
+            ['', ...$videos->allDirectories()],
+            fn ($dir) => ! is_writable($videos->path($dir)),
+        )), 0, 6);
+
         // How many videos a batch would look up: only confirmed titles (the default) and everything.
         $stats['subtitleTodoConfirmed'] = count($this->subtitles->pending(null, true));
         $stats['subtitleTodoAll'] = count($this->subtitles->pending(null, false));
@@ -151,6 +158,10 @@ class AdminController extends Controller
             $operation();
         } catch (InvalidArgumentException) {
             return back()->with('error', 'مسیر یا نام نامعتبر است.');
+        } catch (FilesystemException $e) {
+            report($e);
+
+            return back()->with('error', 'عملیات روی فایل انجام نشد؛ احتمالاً وب‌سرور اجازه‌ی نوشتن در این پوشه را ندارد (گروه www-data و دسترسی 2775 لازم است).');
         } catch (RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
