@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\VideoController;
 use App\Jobs\ProcessVideo;
+use App\Services\Ffmpeg;
 use App\Services\MediaProcessor;
 use App\Services\VideoLibrary;
 use Illuminate\Support\Facades\Process;
@@ -181,4 +182,21 @@ p0.m3u8
     // unknown profile: no CODECS claim rather than a wrong one
     $probe['video']['profile'] = 'Exotic';
     expect(app(MediaProcessor::class)->withVideoVariant($audioOnly, $probe))->not->toContain('CODECS');
+});
+
+it('treats warnings that the source already had as harmless but rejects new ones', function () {
+    $ffmpeg = Mockery::mock(Ffmpeg::class);
+    $ffmpeg->shouldReceive('readWarnings')->with('out.mp4', null)->andReturn(['[h264 @ ] SEI type 5 size 690 truncated at 687']);
+    $ffmpeg->shouldReceive('readWarnings')->with('/src.mkv')->andReturn(['[h264 @ ] SEI type 5 size 690 truncated at 687']);
+    $processor = new MediaProcessor($ffmpeg);
+    $assert = Closure::bind(fn () => $this->assertIntact('out.mp4', null, '/src.mkv'), $processor, MediaProcessor::class);
+
+    expect($assert())->toBeNull();   // identical to the source: fine
+
+    $broken = Mockery::mock(Ffmpeg::class);
+    $broken->shouldReceive('readWarnings')->with('out.mp4', null)->andReturn(['[mp4 @ ] Packet corrupt', '[h264 @ ] SEI type 5 size 690 truncated at 687']);
+    $broken->shouldReceive('readWarnings')->with('/src.mkv')->andReturn(['[h264 @ ] SEI type 5 size 690 truncated at 687']);
+    $assertBroken = Closure::bind(fn () => $this->assertIntact('out.mp4', null, '/src.mkv'), new MediaProcessor($broken), MediaProcessor::class);
+
+    expect($assertBroken)->toThrow(RuntimeException::class, 'Packet corrupt');
 });

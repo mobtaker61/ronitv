@@ -92,10 +92,12 @@ class Ffmpeg
     }
 
     /**
-     * Read every packet of a file (no decoding, no output) and fail on any warning or error:
-     * the cheap way to prove a freshly written file is complete before its source may be deleted.
+     * Read every packet of a file (no decoding, no output) and return the distinct warnings ffmpeg printed.
+     * Throws when the file cannot be read to the end.
+     *
+     * @return list<string> warnings with memory addresses removed, so two runs can be compared
      */
-    public function assertReadable(string $file, ?string $cwd = null): void
+    public function readWarnings(string $file, ?string $cwd = null): array
     {
         $command = [config('media.ffmpeg'), '-hide_banner', '-nostdin', '-v', 'warning', '-i', $file, '-map', '0', '-c', 'copy', '-f', 'null', '-'];
 
@@ -106,9 +108,16 @@ class Ffmpeg
 
         $result = $process->run($command);
 
-        if ($result->failed() || trim($result->errorOutput()) !== '') {
+        $lines = array_map(
+            fn ($line) => trim(preg_replace('/0x[0-9a-f]+/i', '', $line)),
+            preg_split('/\R/', trim($result->errorOutput())),
+        );
+
+        if ($result->failed()) {
             throw new RuntimeException('Integrity check failed: '.substr(trim($result->errorOutput()), -400));
         }
+
+        return array_values(array_unique(array_filter($lines)));
     }
 
     /**

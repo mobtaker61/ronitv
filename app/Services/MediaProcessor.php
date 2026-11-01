@@ -207,7 +207,7 @@ class MediaProcessor
             $output = $this->ffmpeg->probe($partial);
             $this->assertSameDuration($probe['duration'], $output['duration']);
             $this->assertStreams($output, 1);
-            $this->ffmpeg->assertReadable($partial);
+            $this->assertIntact($partial, null, $source);
             rename($partial, $final);
         } finally {
             @unlink($partial);
@@ -277,7 +277,7 @@ class MediaProcessor
 
             // The master playlist must expose the video and every audio track, and read through without a single warning.
             $this->assertStreams($this->ffmpeg->probe($work.DIRECTORY_SEPARATOR.'master.m3u8'), count($audioTracks));
-            $this->ffmpeg->assertReadable('master.m3u8', $work);
+            $this->assertIntact('master.m3u8', $work, $source);
 
             $videos->put($playlist, $this->publicMaster($hls->get($key.'/master.m3u8'), $key, $labels));
         } catch (\Throwable $e) {
@@ -396,6 +396,26 @@ p0.m3u8
     {
         if ($output['video'] === null || count($output['audio']) !== $expectedAudio) {
             throw new RuntimeException(sprintf('Output has %d audio track(s), expected %d.', count($output['audio']), $expectedAudio));
+        }
+    }
+
+    /**
+     * The converted file must read through without warnings the source did not already produce.
+     * (Streams are copied as they are, so a quirk of the original, such as a truncated SEI NAL, is carried over
+     * and is not damage; anything new points at a broken conversion.)
+     */
+    private function assertIntact(string $output, ?string $cwd, string $source): void
+    {
+        $warnings = $this->ffmpeg->readWarnings($output, $cwd);
+
+        if ($warnings === []) {
+            return;
+        }
+
+        $new = array_diff($warnings, $this->ffmpeg->readWarnings($source));
+
+        if ($new !== []) {
+            throw new RuntimeException('Integrity check failed: '.substr(implode('; ', $new), 0, 400));
         }
     }
 
