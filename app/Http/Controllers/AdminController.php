@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Title;
 use App\Services\LibraryManager;
+use App\Services\OrphanPruner;
 use App\Services\SubtitleBatch;
 use App\Services\TitleCatalog;
 use App\Services\VideoLibrary;
@@ -22,7 +23,7 @@ class AdminController extends Controller
 {
     private const CONVERTIBLE = ['mkv', 'avi', 'mov', 'wmv'];
 
-    public function __construct(private LibraryManager $library, private TitleCatalog $titles, private SubtitleBatch $subtitles) {}
+    public function __construct(private LibraryManager $library, private TitleCatalog $titles, private SubtitleBatch $subtitles, private OrphanPruner $pruner) {}
 
     public function dashboard()
     {
@@ -96,6 +97,7 @@ class AdminController extends Controller
         $stats['subtitleTodoAll'] = count($this->subtitles->pending(null, false));
 
         return view('admin.dashboard', [
+            'orphans' => $this->pruner->scan(0),
             'batch' => $this->subtitles->status(),
             'subsourceConfigured' => (string) config('services.subsource.key') !== '',
             'stats' => $stats,
@@ -103,6 +105,31 @@ class AdminController extends Controller
             'queue' => $queue,
             'downloads' => DownloadStatus::recent(),
         ]);
+    }
+
+    /**
+     * Remove every orphan right now (the hourly job keeps the last day's leftovers; here the admin has confirmed).
+     */
+    public function prune()
+    {
+        try {
+            $removed = $this->pruner->prune(0);
+        } catch (FilesystemException $e) {
+            report($e);
+
+            return back()->with('error', 'پاکسازی کامل نشد؛ وب‌سرور اجازه‌ی حذف در بعضی پوشه‌ها را ندارد.');
+        }
+
+        $mb = number_format($removed['bytes'] / 1048576);
+        $parts = array_filter([
+            $removed['hls'] ? "{$removed['hls']} پوشه‌ی HLS" : null,
+            $removed['sidecars'] ? "{$removed['sidecars']} زیرنویس" : null,
+            $removed['partials'] ? "{$removed['partials']} فایل ناقص" : null,
+            $removed['titles'] ? "{$removed['titles']} عنوان" : null,
+            $removed['lookups'] ? "{$removed['lookups']} رکورد جستجو" : null,
+        ]);
+
+        return back()->with('success', $parts ? 'پاک شد: '.implode('، ', $parts)." ({$mb} مگابایت)." : 'مورد بی‌صاحبی پیدا نشد.');
     }
 
     public function library(Request $request, ?string $path = null)

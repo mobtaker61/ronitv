@@ -30,6 +30,26 @@
         </div>
     @endif
 
+    @php $orphanCount = count($orphans['hls']) + count($orphans['sidecars']) + count($orphans['partials']) + count($orphans['titles']) + $orphans['lookups']; @endphp
+    @if($orphanCount > 0)
+        <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <strong>فایل‌های بی‌صاحب پیدا شد</strong>
+                ({{ $fmt($orphans['bytes']) }}):
+                @if($orphans['hls']){{ count($orphans['hls']) }} پوشه‌ی HLS بدون ویدیو@endif
+                @if($orphans['sidecars'])· {{ count($orphans['sidecars']) }} زیرنویس بدون ویدیو@endif
+                @if($orphans['partials'])· {{ count($orphans['partials']) }} فایل ناقص@endif
+                @if($orphans['titles'])· {{ count($orphans['titles']) }} عنوان بدون پوشه@endif
+                @if($orphans['lookups'])· {{ $orphans['lookups'] }} رکورد جستجو@endif
+                <div class="small">معمولاً بعد از حذف پوشه‌ها خارج از پنل می‌مانند. هر ساعت خودکار پاک می‌شوند (به‌جز آنچه کمتر از یک روز از آخرین تغییرش گذشته).</div>
+            </div>
+            <form method="POST" action="{{ route('admin.prune') }}" onsubmit="return confirm('همه‌ی موارد بی‌صاحب همین الان برای همیشه پاک شوند؟')">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-warning"><i class="fas fa-broom me-1"></i>پاکسازی همین الان</button>
+            </form>
+        </div>
+    @endif
+
     <div class="row g-3 mb-3">
         <div class="col-md-4">
             <div class="admin-card h-100">

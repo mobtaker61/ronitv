@@ -34,6 +34,7 @@ Route::middleware(['admin', 'throttle:120,1'])->group(function () {
     Route::post('/admin/titles/assign', [AdminTitleController::class, 'assign'])->name('admin.titles.assign');
     Route::post('/admin/titles/refresh', [AdminTitleController::class, 'refresh'])->name('admin.titles.refresh');
     Route::post('/admin/titles/reset', [AdminTitleController::class, 'reset'])->name('admin.titles.reset');
+    Route::post('/admin/prune', [AdminController::class, 'prune'])->name('admin.prune');
     Route::get('/admin/queue', [AdminQueueController::class, 'index'])->name('admin.queue');
     Route::post('/admin/queue/retry', [AdminQueueController::class, 'retry'])->name('admin.queue.retry');
     Route::post('/admin/queue/forget', [AdminQueueController::class, 'forget'])->name('admin.queue.forget');
